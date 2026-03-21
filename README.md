@@ -13,8 +13,8 @@ This repository contains a Java-based backend application developed for the **Ad
 * **Personnel Management:** View and manage police station staff and forensic experts.
 
 ## 🛠️ Tech Stack
-* **Language:** Java (JDK 17 / 21)
-* **Framework:** Spring Boot 3.x (Web & REST API only)
+* **Language:** Java 21
+* **Framework:** Spring Boot 4.0.4 (Web & REST API only)
 * **Database Access:** Pure JDBC (`java.sql.*`)
 * **Database:** Oracle Database (`ojdbc11`)
 * **Build Tool:** Maven
