@@ -51,7 +51,7 @@ server:
   port: 8080
 
 db:
-  url: jdbc:oracle:thin:@//YOUR_HOST:1521/YOUR_SERVICE_NAME
+  url: jdbc:oracle:thin:@//YOUR_HOST:PORT/YOUR_SERVICE_NAME
   username: YOUR_USERNAME
   password: YOUR_PASSWORD
 ```
