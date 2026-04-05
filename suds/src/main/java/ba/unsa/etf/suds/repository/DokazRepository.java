@@ -27,7 +27,7 @@ public class DokazRepository {
             stmt.setString(3, dokaz.getOpis());
             stmt.setString(4, dokaz.getLokacijaPronalaska());
             stmt.setString(5, dokaz.getTipDokaza());
-            stmt.setString(6, dokaz.getStatus() != null ? dokaz.getStatus() : "Odobren");
+            stmt.setString(6, dokaz.getStatus() != null ? dokaz.getStatus() : "U posjedu");
             stmt.setTimestamp(7, dokaz.getDatumPrikupa());
             stmt.setLong(8, dokaz.getPrikupioUserId());
 
@@ -39,6 +39,18 @@ public class DokazRepository {
             return dokaz;
         } catch (SQLException e) {
             throw new RuntimeException("Greška pri spašavanju dokaza", e);
+        }
+    }
+
+    public void updateStatus(Long dokazId, String noviStatus) {
+        String sql = "UPDATE Dokazi SET STATUS = ? WHERE DOKAZ_ID = ?";
+        try (Connection conn = databaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, noviStatus);
+            stmt.setLong(2, dokazId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while updating evidence status for ID: " + dokazId, e);
         }
     }
 

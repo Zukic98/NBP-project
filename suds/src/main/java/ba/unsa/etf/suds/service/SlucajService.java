@@ -1,22 +1,103 @@
 package ba.unsa.etf.suds.service;
 
+import ba.unsa.etf.suds.config.DatabaseManager;
+import ba.unsa.etf.suds.dto.KreirajSlucajRequest;
+import ba.unsa.etf.suds.dto.MojSlucajDTO;
 import ba.unsa.etf.suds.dto.SlucajDetaljiDTO;
+import ba.unsa.etf.suds.model.Adresa;
+import ba.unsa.etf.suds.model.Slucaj;
+import ba.unsa.etf.suds.model.TimNaSlucaju;
+import ba.unsa.etf.suds.repository.AdresaRepository;
 import ba.unsa.etf.suds.repository.SlucajRepository;
+import ba.unsa.etf.suds.repository.TimNaSlucajuRepository;
 import org.springframework.stereotype.Service;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
 
 @Service
 public class SlucajService {
     private final SlucajRepository slucajRepository;
+    private final AdresaRepository adresaRepository;
+    private final TimNaSlucajuRepository timRepository;
+    private final DatabaseManager dbManager;
 
-    public SlucajService(SlucajRepository slucajRepository) {
+    public SlucajService(SlucajRepository slucajRepository,
+                         AdresaRepository adresaRepository,
+                         TimNaSlucajuRepository timRepository,
+                         DatabaseManager dbManager) {
         this.slucajRepository = slucajRepository;
+        this.adresaRepository = adresaRepository;
+        this.timRepository = timRepository;
+        this.dbManager = dbManager;
     }
 
-    /**
-     * Metoda dohvaća sve detalje o slučaju na osnovu broja slučaja.
-     * Koristi jedan kompleksan JOIN upit definisan u repozitoriju.
-     */
     public SlucajDetaljiDTO getSlucajDetalji(String brojSlucaja) {
         return slucajRepository.findDetaljiByBroj(brojSlucaja);
+    }
+
+    public Slucaj kreirajSlucaj(KreirajSlucajRequest request, Long voditeljUserId) {
+        Connection conn = null;
+        try {
+            conn = dbManager.getConnection();
+            conn.setAutoCommit(false);
+
+            Adresa adresa = new Adresa();
+            adresa.setUlicaIBroj(request.getUlicaIBroj());
+            adresa.setGrad(request.getGrad());
+            adresa.setPostanskiBroj(request.getPostanskiBroj());
+            adresa.setDrzava(request.getDrzava());
+            Long adresaId = adresaRepository.saveWithConnection(conn, adresa);
+
+            Slucaj slucaj = new Slucaj();
+            slucaj.setStanicaId(request.getStanicaId());
+            slucaj.setBrojSlucaja(request.getBrojSlucaja());
+            slucaj.setOpis(request.getOpis());
+            slucaj.setStatus("Aktivan");
+            slucaj.setVoditeljUserId(voditeljUserId);
+            slucaj.setDatumKreiranja(new Timestamp(System.currentTimeMillis()));
+            Long slucajId = slucajRepository.saveWithConnection(conn, slucaj);
+
+            if (request.getTim() != null) {
+                for (KreirajSlucajRequest.ClanTima clan : request.getTim()) {
+                    TimNaSlucaju tim = new TimNaSlucaju();
+                    tim.setSlucajId(slucajId);
+                    tim.setUserId(clan.getUserId());
+                    tim.setUlogaNaSlucaju(clan.getUloga());
+                    tim.setDatumDodavanja(new Timestamp(System.currentTimeMillis()));
+                    timRepository.saveWithConnection(conn, tim);
+                }
+            }
+
+            conn.commit();
+
+            slucaj.setSlucajId(slucajId);
+            return slucaj;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    rollbackEx.addSuppressed(e);
+                }
+            }
+            throw new RuntimeException("Transaction failed during case creation, rolled back", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException closeEx) {
+                    throw new RuntimeException("Failed to close connection", closeEx);
+                }
+            }
+        }
+    }
+
+    public List<MojSlucajDTO> getMojiSlucajevi(Long userId, String roleName) {
+        return slucajRepository.findMojiSlucajevi(userId, roleName);
     }
 }

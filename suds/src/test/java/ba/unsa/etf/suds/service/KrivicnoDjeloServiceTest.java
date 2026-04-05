@@ -43,7 +43,7 @@ class KrivicnoDjeloServiceTest {
 
         // 3. Assert (Provjeri da li je servis uradio dobar posao)
         assertEquals(2, rezultat.size());
-        assertEquals("Teđa krađa", rezultat.get(0).getNaziv());
+        assertEquals("Teška krađa", rezultat.get(0).getNaziv());
 
         // Provjeravamo da li je servis tačno 1 put pozvao repository (ni manje ni više)
         verify(repository, times(1)).findAll();

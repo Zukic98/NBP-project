@@ -1,6 +1,7 @@
 package ba.unsa.etf.suds.repository;
 
 import ba.unsa.etf.suds.config.DatabaseManager;
+import ba.unsa.etf.suds.dto.MojSlucajDTO;
 import ba.unsa.etf.suds.dto.SlucajDetaljiDTO;
 import ba.unsa.etf.suds.model.Slucaj;
 import org.springframework.stereotype.Repository;
@@ -132,6 +133,69 @@ public class SlucajRepository {
             throw new RuntimeException("Error while fetching case details DTO for number: " + brojSlucaja, e);
         }
         return dto;
+    }
+
+    public Long saveWithConnection(Connection conn, Slucaj slucaj) throws SQLException {
+        String sql = "INSERT INTO SLUCAJEVI (STANICA_ID, BROJ_SLUCAJA, OPIS, STATUS, VODITELJ_USER_ID, DATUM_KREIRANJA) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setLong(1, slucaj.getStanicaId());
+            stmt.setString(2, slucaj.getBrojSlucaja());
+            stmt.setString(3, slucaj.getOpis());
+            stmt.setString(4, slucaj.getStatus() != null ? slucaj.getStatus() : "Aktivan");
+            stmt.setLong(5, slucaj.getVoditeljUserId());
+            stmt.setTimestamp(6, slucaj.getDatumKreiranja() != null
+                    ? slucaj.getDatumKreiranja()
+                    : new Timestamp(System.currentTimeMillis()));
+            stmt.executeUpdate();
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
+                }
+            }
+            throw new SQLException("No generated key returned for Slucaj insert");
+        }
+    }
+
+    public List<MojSlucajDTO> findMojiSlucajevi(Long userId, String roleName) {
+        List<MojSlucajDTO> rezultat = new ArrayList<>();
+        String sql;
+
+        if ("Inspektor".equalsIgnoreCase(roleName) || "Šef".equalsIgnoreCase(roleName)) {
+            sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
+                  "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS IME_VODITELJA, 'Voditelj' AS ULOGA " +
+                  "FROM SLUCAJEVI s " +
+                  "LEFT JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
+                  "WHERE s.VODITELJ_USER_ID = ?";
+        } else {
+            sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
+                  "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS IME_VODITELJA, t.ULOGA_NA_SLUCAJU AS ULOGA " +
+                  "FROM SLUCAJEVI s " +
+                  "JOIN TIM_NA_SLUCAJU t ON s.SLUCAJ_ID = t.SLUCAJ_ID " +
+                  "LEFT JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
+                  "WHERE t.USER_ID = ?";
+        }
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    MojSlucajDTO dto = new MojSlucajDTO();
+                    dto.setSlucajId(rs.getLong("SLUCAJ_ID"));
+                    dto.setBrojSlucaja(rs.getString("BROJ_SLUCAJA"));
+                    dto.setOpis(rs.getString("OPIS"));
+                    dto.setStatus(rs.getString("STATUS"));
+                    dto.setImeVoditelja(rs.getString("IME_VODITELJA"));
+                    dto.setUlogaNaSlucaju(rs.getString("ULOGA"));
+                    dto.setDatumKreiranja(rs.getTimestamp("DATUM_KREIRANJA"));
+                    rezultat.add(dto);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while fetching user cases for userId: " + userId, e);
+        }
+        return rezultat;
     }
 
     private Slucaj mapRowToSlucaj(ResultSet rs) throws SQLException {

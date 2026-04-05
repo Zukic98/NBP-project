@@ -16,6 +16,20 @@ public class SvjedokRepository {
         this.dbManager = dbManager;
     }
 
+    public void saveWithConnection(Connection conn, Svjedok svjedok) throws SQLException {
+        String sql = "INSERT INTO Svjedoci (SLUCAJ_ID, IME_PREZIME, JMBG, ADRESA_ID, KONTAKT_TELEFON, BILJESKA) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, svjedok.getSlucajId());
+            stmt.setString(2, svjedok.getImePrezime());
+            stmt.setString(3, svjedok.getJmbg());
+            stmt.setLong(4, svjedok.getAdresaId());
+            stmt.setString(5, svjedok.getKontaktTelefon());
+            stmt.setString(6, svjedok.getBiljeska());
+            stmt.executeUpdate();
+        }
+    }
+
     public List<Svjedok> findAll() {
         List<Svjedok> svjedoci = new ArrayList<>();
         String sql = "SELECT * FROM Svjedoci";
