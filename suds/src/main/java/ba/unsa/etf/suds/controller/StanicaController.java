@@ -1,5 +1,6 @@
 package ba.unsa.etf.suds.controller;
 
+import ba.unsa.etf.suds.dto.RegistrationRequest; 
 import ba.unsa.etf.suds.model.Stanica;
 import ba.unsa.etf.suds.service.StanicaService;
 import org.springframework.http.ResponseEntity;
@@ -24,5 +25,11 @@ public class StanicaController {
     @GetMapping("/{id}")
     public ResponseEntity<Stanica> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
+        service.registerStanica(request);
+        return ResponseEntity.ok("Stanica i šef su uspješno registrovani u bazu!");
     }
 }
