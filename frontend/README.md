@@ -23,5 +23,3 @@ Follow these steps to run the application locally.
 4. **Start the development server:**
    ```bash
     npm run dev
-
-The application
