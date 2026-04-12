@@ -47,7 +47,11 @@ public class StanicaController {
             @ApiResponse(responseCode = "500", description = "Greška na serveru")
     })
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
-        service.registerStanica(request);
-        return ResponseEntity.ok("Stanica i šef su uspješno registrovani u bazu!");
+        try {
+            service.registerStanica(request);
+            return ResponseEntity.status(201).body("Stanica i šef su uspješno registrovani u bazu!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Greška pri registraciji: " + e.getMessage());
+        }
     }
 }

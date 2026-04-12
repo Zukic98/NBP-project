@@ -139,7 +139,7 @@ public class SlucajRepository {
     public Long saveWithConnection(Connection conn, Slucaj slucaj) throws SQLException {
         String sql = "INSERT INTO SLUCAJEVI (STANICA_ID, BROJ_SLUCAJA, OPIS, STATUS, VODITELJ_USER_ID, DATUM_KREIRANJA) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"SLUCAJ_ID"})) {
             stmt.setLong(1, slucaj.getStanicaId());
             stmt.setString(2, slucaj.getBrojSlucaja());
             stmt.setString(3, slucaj.getOpis());

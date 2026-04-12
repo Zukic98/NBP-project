@@ -55,8 +55,6 @@ class LanacNadzoraServiceTest {
 
         LanacNadzora result = service.posaljiDokaz(request, predaoUserId);
 
-        verify(dokazRepository).updateStatus(1L, "Čeka potvrdu");
-
         ArgumentCaptor<LanacNadzora> captor = ArgumentCaptor.forClass(LanacNadzora.class);
         verify(lanacRepository).save(captor.capture());
         LanacNadzora saved = captor.getValue();
@@ -83,7 +81,6 @@ class LanacNadzoraServiceTest {
         service.prihvatiDokaz(unosId, potvrdioUserId);
 
         verify(lanacRepository).prihvati(unosId, potvrdioUserId);
-        verify(dokazRepository).updateStatus(1L, "U posjedu");
     }
 
     @Test
@@ -162,8 +159,6 @@ class LanacNadzoraServiceTest {
         LanacNadzora result = service.kreirajPrimopredaju(dokazId, request, predaoUserId);
 
         assertNotNull(result);
-        verify(dokazRepository).updateStatus(dokazId, "Čeka potvrdu");
-
         ArgumentCaptor<LanacNadzora> captor = ArgumentCaptor.forClass(LanacNadzora.class);
         verify(lanacRepository).save(captor.capture());
         LanacNadzora saved = captor.getValue();
@@ -206,7 +201,6 @@ class LanacNadzoraServiceTest {
         service.potvrdiIliOdbij(unosId, "Potvrđeno", "ok", userId);
 
         verify(lanacRepository).potvrdiIliOdbij(unosId, "Potvrđeno", "ok", userId);
-        verify(dokazRepository).updateStatus(50L, "U posjedu");
     }
 
     @Test
@@ -223,7 +217,6 @@ class LanacNadzoraServiceTest {
         service.potvrdiIliOdbij(unosId, "Odbijeno", "nije ispravno", userId);
 
         verify(lanacRepository).potvrdiIliOdbij(unosId, "Odbijeno", "nije ispravno", userId);
-        verify(dokazRepository).updateStatus(51L, "U posjedu");
     }
 
     @Test
@@ -286,7 +279,6 @@ class LanacNadzoraServiceTest {
         service.ponistiPrimopredaju(unosId, request, senderId);
 
         verify(lanacRepository).ponisti(unosId, "Pogrešan primaoc", senderId);
-        verify(dokazRepository).updateStatus(54L, "U posjedu");
     }
 
     @Test

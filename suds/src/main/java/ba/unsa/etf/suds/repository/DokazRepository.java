@@ -25,14 +25,14 @@ public class DokazRepository {
         String sql = "INSERT INTO Dokazi (slucaj_id, stanica_id, opis, lokacija_pronalaska, tip_dokaza, status, datum_prikupa, prikupio_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = databaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"DOKAZ_ID"})) {
 
             stmt.setLong(1, dokaz.getSlucajId());
             stmt.setLong(2, dokaz.getStanicaId());
             stmt.setString(3, dokaz.getOpis());
             stmt.setString(4, dokaz.getLokacijaPronalaska());
             stmt.setString(5, dokaz.getTipDokaza());
-            stmt.setString(6, dokaz.getStatus() != null ? dokaz.getStatus() : "U posjedu");
+            stmt.setString(6, dokaz.getStatus() != null ? dokaz.getStatus() : "Odobren");
             stmt.setTimestamp(7, dokaz.getDatumPrikupa());
             stmt.setLong(8, dokaz.getPrikupioUserId());
 

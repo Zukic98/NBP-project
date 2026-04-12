@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/stanice/register").permitAll()
                 .requestMatchers("/api/adrese").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

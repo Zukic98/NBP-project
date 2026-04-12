@@ -18,28 +18,25 @@ public class TimNaSlucajuRepository {
     }
 
     public void saveWithConnection(Connection conn, TimNaSlucaju tim) throws SQLException {
-        String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU, DATUM_DODAVANJA) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU) VALUES (?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, tim.getSlucajId());
             stmt.setLong(2, tim.getUserId());
             stmt.setString(3, tim.getUlogaNaSlucaju());
-            stmt.setTimestamp(4, tim.getDatumDodavanja() != null
-                    ? tim.getDatumDodavanja()
-                    : new Timestamp(System.currentTimeMillis()));
             stmt.executeUpdate();
         }
     }
 
     public List<TimClanDTO> findByCaseId(Long caseId) {
         List<TimClanDTO> clanovi = new ArrayList<>();
-        String sql = "SELECT t.TIM_NA_SLUCAJU_ID, t.USER_ID, (u.FIRST_NAME||' '||u.LAST_NAME) AS IME_PREZIME, " +
+        String sql = "SELECT t.DODJELA_ID, t.USER_ID, (u.FIRST_NAME||' '||u.LAST_NAME) AS IME_PREZIME, " +
                 "r.NAME AS NAZIV_ULOGE, t.ULOGA_NA_SLUCAJU, p.BROJ_ZNACKE, u.EMAIL " +
                 "FROM TIM_NA_SLUCAJU t " +
                 "JOIN nbp.NBP_USER u ON t.USER_ID=u.ID " +
                 "JOIN nbp.NBP_ROLE r ON u.ROLE_ID=r.ID " +
                 "LEFT JOIN UPOSLENIK_PROFIL p ON u.ID=p.USER_ID " +
                 "WHERE t.SLUCAJ_ID=? " +
-                "ORDER BY t.DATUM_DODAVANJA";
+                "ORDER BY t.DODJELA_ID";
 
         try (Connection conn = dbManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -47,7 +44,7 @@ public class TimNaSlucajuRepository {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     TimClanDTO dto = new TimClanDTO();
-                    dto.setDodjelaId(rs.getLong("TIM_NA_SLUCAJU_ID"));
+                    dto.setDodjelaId(rs.getLong("DODJELA_ID"));
                     dto.setUposlenikId(rs.getLong("USER_ID"));
                     dto.setImePrezime(rs.getString("IME_PREZIME"));
                     dto.setNazivUloge(rs.getString("NAZIV_ULOGE"));
@@ -65,15 +62,12 @@ public class TimNaSlucajuRepository {
     }
 
     public Long save(TimNaSlucaju tim) {
-        String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU, DATUM_DODAVANJA) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU) VALUES (?, ?, ?)";
         try (Connection conn = dbManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"DODJELA_ID"})) {
             stmt.setLong(1, tim.getSlucajId());
             stmt.setLong(2, tim.getUserId());
             stmt.setString(3, tim.getUlogaNaSlucaju());
-            stmt.setTimestamp(4, tim.getDatumDodavanja() != null
-                    ? tim.getDatumDodavanja()
-                    : new Timestamp(System.currentTimeMillis()));
             stmt.executeUpdate();
 
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
@@ -91,7 +85,7 @@ public class TimNaSlucajuRepository {
     }
 
     public void deleteById(Long id) {
-        String sql = "DELETE FROM TIM_NA_SLUCAJU WHERE TIM_NA_SLUCAJU_ID=?";
+        String sql = "DELETE FROM TIM_NA_SLUCAJU WHERE DODJELA_ID=?";
         try (Connection conn = dbManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);

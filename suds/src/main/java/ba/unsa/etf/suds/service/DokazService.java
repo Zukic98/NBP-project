@@ -78,7 +78,7 @@ public class DokazService {
         dokaz.setOpis(request.getOpis());
         dokaz.setLokacijaPronalaska(request.getLokacijaPronalaska());
         dokaz.setTipDokaza(request.getTipDokaza());
-        dokaz.setStatus("U posjedu");
+        dokaz.setStatus("Odobren");
         dokaz.setDatumPrikupa(new Timestamp(System.currentTimeMillis()));
         dokaz.setPrikupioUserId(userId);
 

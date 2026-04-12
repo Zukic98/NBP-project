@@ -97,7 +97,7 @@ public class SvjedokRepository {
                 "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = dbManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"SVJEDOK_ID"})) {
             stmt.setLong(1, slucajId);
             stmt.setString(2, imePrezime);
             stmt.setString(3, jmbg);

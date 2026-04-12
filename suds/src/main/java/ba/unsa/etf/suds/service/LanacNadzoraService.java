@@ -25,8 +25,6 @@ public class LanacNadzoraService {
     }
 
     public LanacNadzora posaljiDokaz(PosaljiDokazRequest request, Long predaoUserId) {
-        dokazRepository.updateStatus(request.getDokazId(), "Čeka potvrdu");
-
         LanacNadzora lanac = new LanacNadzora();
         lanac.setDokazId(request.getDokazId());
         lanac.setStanicaId(request.getStanicaId());
@@ -56,7 +54,6 @@ public class LanacNadzoraService {
         }
 
         lanacRepository.prihvati(unosId, potvrdioUserId);
-        dokazRepository.updateStatus(lanac.getDokazId(), "U posjedu");
     }
 
     public LanacNadzora kreirajPrimopredaju(Long dokazId, PrimopredajaRequest request, Long predaoUserId) {
@@ -74,9 +71,7 @@ public class LanacNadzoraService {
         lanac.setSvrhaPrimopredaje(request.getSvrha());
         lanac.setPotvrdaStatus("Čeka potvrdu");
 
-        LanacNadzora sacuvan = lanacRepository.save(lanac);
-        dokazRepository.updateStatus(dokazId, "Čeka potvrdu");
-        return sacuvan;
+        return lanacRepository.save(lanac);
     }
 
     public List<PrimopredajaZaPotvrduDTO> getCekaPotvrduZaMene(Long userId) {
@@ -114,7 +109,6 @@ public class LanacNadzoraService {
         }
 
         lanacRepository.potvrdiIliOdbij(unosId, status, napomena, potvrdioUserId);
-        dokazRepository.updateStatus(lanac.getDokazId(), "U posjedu");
     }
 
     public void ponistiPrimopredaju(Long unosId, PonistiRequest request, Long userId) {
@@ -130,6 +124,5 @@ public class LanacNadzoraService {
         }
 
         lanacRepository.ponisti(unosId, request.getRazlog(), userId);
-        dokazRepository.updateStatus(lanac.getDokazId(), "U posjedu");
     }
 }

@@ -39,9 +39,8 @@ public class AdresaRepository {
     public Adresa save(Adresa adresa) {
         String sql = "INSERT INTO Adrese (ulica_i_broj, grad, postanski_broj, drzava) VALUES (?, ?, ?, ?)";
 
-        // Using RETURN_GENERATED_KEYS so the Oracle get ID  which is at this moment come
         try (Connection conn = dbManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"ADRESA_ID"})) {
 
             stmt.setString(1, adresa.getUlicaIBroj());
             stmt.setString(2, adresa.getGrad());
@@ -64,7 +63,7 @@ public class AdresaRepository {
 
     public Long saveWithConnection(Connection conn, Adresa adresa) throws SQLException {
         String sql = "INSERT INTO Adrese (ulica_i_broj, grad, postanski_broj, drzava) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"ADRESA_ID"})) {
             stmt.setString(1, adresa.getUlicaIBroj());
             stmt.setString(2, adresa.getGrad());
             stmt.setString(3, adresa.getPostanskiBroj());

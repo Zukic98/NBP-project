@@ -24,7 +24,7 @@ public class LanacNadzoraRepository {
         String sql = "INSERT INTO Lanac_Nadzora (dokaz_id, stanica_id, datum_primopredaje, predao_user_id, preuzeo_user_id, svrha_primopredaje, potvrda_status) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = databaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"UNOS_ID"})) {
 
             stmt.setLong(1, lanac.getDokazId());
             stmt.setLong(2, lanac.getStanicaId());

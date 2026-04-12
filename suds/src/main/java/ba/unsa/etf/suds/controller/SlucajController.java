@@ -4,6 +4,7 @@ import ba.unsa.etf.suds.dto.*;
 import ba.unsa.etf.suds.model.Osumnjiceni;
 import ba.unsa.etf.suds.model.Slucaj;
 import ba.unsa.etf.suds.model.Svjedok;
+import ba.unsa.etf.suds.security.JwtUtil;
 import ba.unsa.etf.suds.service.OsumnjiceniService;
 import ba.unsa.etf.suds.service.SlucajService;
 import ba.unsa.etf.suds.service.SvjedokService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,13 +31,16 @@ public class SlucajController {
     private final SlucajService slucajService;
     private final SvjedokService svjedokService;
     private final OsumnjiceniService osumnjiceniService;
+    private final JwtUtil jwtUtil;
 
     public SlucajController(SlucajService slucajService,
                             SvjedokService svjedokService,
-                            OsumnjiceniService osumnjiceniService) {
+                            OsumnjiceniService osumnjiceniService,
+                            JwtUtil jwtUtil) {
         this.slucajService = slucajService;
         this.svjedokService = svjedokService;
         this.osumnjiceniService = osumnjiceniService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/broj/{brojSlucaja}")
@@ -114,7 +119,7 @@ public class SlucajController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasAnyRole('ŠEF', 'INSPEKTOR')")
+    @PreAuthorize("hasAnyRole('SEF_STANICE', 'INSPEKTOR')")
     @PostMapping
     @Operation(summary = "Kreiraj novi slučaj")
     @ApiResponses(value = {
@@ -122,15 +127,24 @@ public class SlucajController {
             @ApiResponse(responseCode = "400", description = "Neispravan zahtjev"),
             @ApiResponse(responseCode = "500", description = "Greška na serveru")
     })
-    public ResponseEntity<Slucaj> kreirajSlucaj(@RequestBody KreirajSlucajRequest request) {
+    public ResponseEntity<?> kreirajSlucaj(@RequestBody KreirajSlucajRequest request,
+                                              HttpServletRequest httpRequest) {
         try {
-            String userIdStr = (String) org.springframework.security.core.context.SecurityContextHolder
-                    .getContext().getAuthentication().getPrincipal();
+            String userIdStr = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Long userId = Long.parseLong(userIdStr);
+
+            if (request.getStanicaId() == null) {
+                String token = httpRequest.getHeader("Authorization").substring(7);
+                Long stanicaId = jwtUtil.extractStanicaId(token);
+                request.setStanicaId(stanicaId);
+            }
+
             Slucaj slucaj = slucajService.kreirajSlucaj(request, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(slucaj);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Greška pri kreiranju slučaja: " + e.getMessage());
         }
     }
 

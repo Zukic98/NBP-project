@@ -19,7 +19,7 @@ public class OsumnjiceniRepository {
 
     public Long saveWithConnection(Connection conn, Osumnjiceni osumnjiceni) throws SQLException {
         String sql = "INSERT INTO OSUMNJICENI (IME_PREZIME, JMBG, ADRESA_ID, DATUM_RODJENJA) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"OSUMNJICENI_ID"})) {
             stmt.setString(1, osumnjiceni.getImePrezime());
             stmt.setString(2, osumnjiceni.getJmbg());
             stmt.setLong(3, osumnjiceni.getAdresaId());

@@ -2,9 +2,11 @@ package ba.unsa.etf.suds.controller;
 
 import ba.unsa.etf.suds.dto.KreirajSlucajRequest;
 import ba.unsa.etf.suds.model.Slucaj;
+import ba.unsa.etf.suds.security.JwtUtil;
 import ba.unsa.etf.suds.service.OsumnjiceniService;
 import ba.unsa.etf.suds.service.SlucajService;
 import ba.unsa.etf.suds.service.SvjedokService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -33,17 +35,23 @@ class SlucajControllerRbacTest {
     @Mock
     private OsumnjiceniService osumnjiceniService;
 
+    @Mock
+    private JwtUtil jwtUtil;
+
+    @Mock
+    private HttpServletRequest httpServletRequest;
+
     private SlucajController controller;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        controller = new SlucajController(slucajService, svjedokService, osumnjiceniService);
+        controller = new SlucajController(slucajService, svjedokService, osumnjiceniService, jwtUtil);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
                         "1",
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_ŠEF"))
+                        List.of(new SimpleGrantedAuthority("ROLE_SEF_STANICE"))
                 )
         );
     }
@@ -67,11 +75,10 @@ class SlucajControllerRbacTest {
         when(slucajService.kreirajSlucaj(any(KreirajSlucajRequest.class), eq(1L)))
                 .thenReturn(expectedSlucaj);
 
-        ResponseEntity<Slucaj> response = controller.kreirajSlucaj(request);
+        ResponseEntity<?> response = controller.kreirajSlucaj(request, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("SLU-2026-001", response.getBody().getBrojSlucaja());
         verify(slucajService).kreirajSlucaj(any(), eq(1L));
     }
 
@@ -85,7 +92,7 @@ class SlucajControllerRbacTest {
         slucaj.setSlucajId(2L);
         when(slucajService.kreirajSlucaj(any(), any())).thenReturn(slucaj);
 
-        ResponseEntity<Slucaj> response = controller.kreirajSlucaj(request);
+        ResponseEntity<?> response = controller.kreirajSlucaj(request, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
     }
@@ -97,7 +104,7 @@ class SlucajControllerRbacTest {
 
         when(slucajService.kreirajSlucaj(any(), any())).thenThrow(new RuntimeException("DB error"));
 
-        ResponseEntity<Slucaj> response = controller.kreirajSlucaj(request);
+        ResponseEntity<?> response = controller.kreirajSlucaj(request, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
     }
