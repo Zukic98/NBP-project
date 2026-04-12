@@ -3,6 +3,7 @@ package ba.unsa.etf.suds.repository;
 import ba.unsa.etf.suds.config.DatabaseManager;
 import ba.unsa.etf.suds.dto.MojSlucajDTO;
 import ba.unsa.etf.suds.dto.SlucajDetaljiDTO;
+import ba.unsa.etf.suds.dto.SlucajListDTO;
 import ba.unsa.etf.suds.model.Slucaj;
 import org.springframework.stereotype.Repository;
 
@@ -157,6 +158,78 @@ public class SlucajRepository {
         }
     }
 
+    public List<SlucajListDTO> findAllFiltered(Long userId, String roleName) {
+        List<SlucajListDTO> rezultat = new ArrayList<>();
+        String sql;
+
+        if ("ŠEF".equalsIgnoreCase(roleName) || "SEF_STANICE".equalsIgnoreCase(roleName)) {
+            sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, " +
+                    "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS VODITELJ, s.DATUM_KREIRANJA " +
+                    "FROM SLUCAJEVI s " +
+                    "JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
+                    "WHERE s.STANICA_ID = (SELECT STANICA_ID FROM UPOSLENIK_PROFIL WHERE USER_ID = ?)";
+        } else {
+            sql = "SELECT DISTINCT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, " +
+                    "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS VODITELJ, s.DATUM_KREIRANJA " +
+                    "FROM SLUCAJEVI s " +
+                    "JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
+                    "LEFT JOIN TIM_NA_SLUCAJU t ON s.SLUCAJ_ID = t.SLUCAJ_ID " +
+                    "WHERE s.VODITELJ_USER_ID = ? OR t.USER_ID = ?";
+        }
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            if (!("ŠEF".equalsIgnoreCase(roleName) || "SEF_STANICE".equalsIgnoreCase(roleName))) {
+                stmt.setLong(2, userId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    rezultat.add(mapRowToSlucajListDTO(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while fetching filtered case list for userId: " + userId, e);
+        }
+
+        return rezultat;
+    }
+
+    public Optional<SlucajListDTO> findByIdWithVoditelj(Long id) {
+        String sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
+                "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS VODITELJ " +
+                "FROM SLUCAJEVI s " +
+                "JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
+                "WHERE s.SLUCAJ_ID = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToSlucajListDTO(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while fetching case list DTO by ID: " + id, e);
+        }
+
+        return Optional.empty();
+    }
+
+    public boolean updateStatus(Long id, String status) {
+        String sql = "UPDATE SLUCAJEVI SET STATUS = ? WHERE SLUCAJ_ID = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setLong(2, id);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error while updating case status for ID: " + id, e);
+        }
+    }
+
     public List<MojSlucajDTO> findMojiSlucajevi(Long userId, String roleName) {
         List<MojSlucajDTO> rezultat = new ArrayList<>();
         String sql;
@@ -186,7 +259,7 @@ public class SlucajRepository {
                     dto.setBrojSlucaja(rs.getString("BROJ_SLUCAJA"));
                     dto.setOpis(rs.getString("OPIS"));
                     dto.setStatus(rs.getString("STATUS"));
-                    dto.setImeVoditelja(rs.getString("IME_VODITELJA"));
+                    dto.setVoditeljSlucaja(rs.getString("IME_VODITELJA"));
                     dto.setUlogaNaSlucaju(rs.getString("ULOGA"));
                     dto.setDatumKreiranja(rs.getTimestamp("DATUM_KREIRANJA"));
                     rezultat.add(dto);
@@ -208,5 +281,16 @@ public class SlucajRepository {
                 rs.getLong("VODITELJ_USER_ID"),
                 rs.getTimestamp("DATUM_KREIRANJA")
         );
+    }
+
+    private SlucajListDTO mapRowToSlucajListDTO(ResultSet rs) throws SQLException {
+        SlucajListDTO dto = new SlucajListDTO();
+        dto.setSlucajId(rs.getLong("SLUCAJ_ID"));
+        dto.setBrojSlucaja(rs.getString("BROJ_SLUCAJA"));
+        dto.setOpis(rs.getString("OPIS"));
+        dto.setStatus(rs.getString("STATUS"));
+        dto.setVoditeljSlucaja(rs.getString("VODITELJ"));
+        dto.setDatumKreiranja(rs.getTimestamp("DATUM_KREIRANJA"));
+        return dto;
     }
 }

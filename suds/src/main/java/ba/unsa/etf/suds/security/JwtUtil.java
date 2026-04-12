@@ -23,11 +23,15 @@ public class JwtUtil {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(String username, Long userId, String role) {
+    /**
+     * Generisanje JWT tokena sa korisničkim informacijama.
+     */
+    public String generateToken(Long userId, String roleName, Long stanicaId) {
         return Jwts.builder()
-                .subject(username)
-                .claim("userId", userId)
-                .claim("role", role)
+                .subject(userId.toString())
+                .claim("user_id", userId)
+                .claim("role_name", roleName)
+                .claim("stanica_id", stanicaId)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)
@@ -42,8 +46,20 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    public String extractUsername(String token) {
+    public String extractUserId(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        return extractClaims(token).get("role_name", String.class);
+    }
+
+    public Long extractStanicaId(String token) {
+        return extractClaims(token).get("stanica_id", Long.class);
+    }
+
+    public boolean isTokenExpired(String token) {
+        return extractClaims(token).getExpiration().before(new Date());
     }
 
     public boolean isTokenValid(String token) {
@@ -53,5 +69,9 @@ public class JwtUtil {
         } catch (Exception e) {
             return false;
         }
+    }
+    public boolean validateToken(String token, Long userId) {
+        final String extractedUserId = extractUserId(token);
+        return (extractedUserId.equals(userId.toString()) && !isTokenExpired(token));
     }
 }

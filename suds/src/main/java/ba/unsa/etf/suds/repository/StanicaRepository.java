@@ -1,6 +1,7 @@
 package ba.unsa.etf.suds.repository;
 
 import ba.unsa.etf.suds.config.DatabaseManager;
+import ba.unsa.etf.suds.dto.RegistrationRequest;
 import ba.unsa.etf.suds.model.Stanica;
 import org.springframework.stereotype.Repository;
 
@@ -60,4 +61,87 @@ public class StanicaRepository {
         }
         return Optional.empty();
     }
+
+    public void registerStanicaITips(RegistrationRequest req, Long roleIdSef) {
+    Connection conn = null;
+    try {
+        conn = dbManager.getConnection();
+        conn.setAutoCommit(false); 
+
+        Long generisanAdresaId;
+        String sqlAdresa = "INSERT INTO ADRESE (ULICA_I_BROJ, GRAD, POSTANSKI_BROJ, DRZAVA) VALUES (?, ?, ?, 'Bosna i Hercegovina')";
+        
+        try (PreparedStatement ps = conn.prepareStatement(sqlAdresa, new String[]{"ADRESA_ID"})) {
+            ps.setString(1, req.getUlicaIBroj());
+            ps.setString(2, req.getGrad());
+            ps.setString(3, req.getPostanskiBroj());
+            ps.executeUpdate();
+
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                generisanAdresaId = rs.getLong(1);
+            } else {
+                throw new SQLException("Kreiranje adrese nije uspjelo, ADRESA_ID nije generisan.");
+            }
+        }
+
+        String sqlStanica = "INSERT INTO STANICE (IME_STANICE, ADRESA_ID, DATUM_KREIRANJA) VALUES (?, ?, CURRENT_TIMESTAMP)";
+        Long stanicaId;
+        try (PreparedStatement ps = conn.prepareStatement(sqlStanica, new String[]{"STANICA_ID"})) {
+            ps.setString(1, req.getImeStanice());
+            ps.setLong(2, generisanAdresaId); 
+            ps.executeUpdate();
+            
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                stanicaId = rs.getLong(1);
+            } else {
+                throw new SQLException("Kreiranje stanice nije uspjelo.");
+            }
+        }
+
+        String sqlUser = "INSERT INTO nbp.NBP_USER (FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, USERNAME, ROLE_ID) VALUES (?, ?, ?, ?, ?, ?)";
+        Long userId;
+        try (PreparedStatement ps = conn.prepareStatement(sqlUser, new String[]{"ID"})) {
+            ps.setString(1, req.getFirstName());
+            ps.setString(2, req.getLastName());
+            ps.setString(3, req.getEmail());
+            ps.setString(4, req.getPassword()); 
+            ps.setString(5, req.getUsername());
+            ps.setLong(6, roleIdSef);
+            ps.executeUpdate();
+
+            ResultSet rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                userId = rs.getLong(1);
+            } else {
+                throw new SQLException("Kreiranje korisnika nije uspjelo.");
+            }
+        }
+
+        String sqlProfil = "INSERT INTO UPOSLENIK_PROFIL (USER_ID, STANICA_ID, BROJ_ZNACKE, STATUS) VALUES (?, ?, ?, 'Aktivan')";
+        try (PreparedStatement ps = conn.prepareStatement(sqlProfil)) {
+            ps.setLong(1, userId);
+            ps.setLong(2, stanicaId);
+            ps.setString(3, req.getBrojZnacke());
+            ps.executeUpdate();
+        }
+
+        conn.commit(); 
+        System.out.println("Uspješno registrovano sve: Adresa ID " + generisanAdresaId + ", Stanica ID " + stanicaId);
+
+    } catch (SQLException e) {
+        if (conn != null) {
+            try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+        }
+        throw new RuntimeException("Greška u bazi: " + e.getMessage());
+    } finally {
+        if (conn != null) {
+            try { 
+                conn.setAutoCommit(true); 
+                conn.close(); 
+            } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+}
 }

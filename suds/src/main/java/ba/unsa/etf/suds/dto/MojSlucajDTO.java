@@ -1,16 +1,19 @@
 package ba.unsa.etf.suds.dto;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 
 import java.sql.Timestamp;
 
 @Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class MojSlucajDTO {
     private Long slucajId;
     private String brojSlucaja;
     private String opis;
     private String status;
-    private String imeVoditelja;
+    private String voditeljSlucaja;
     private String ulogaNaSlucaju;
     private Timestamp datumKreiranja;
 }

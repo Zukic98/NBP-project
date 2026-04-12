@@ -2,6 +2,7 @@ package ba.unsa.etf.suds.service;
 
 import ba.unsa.etf.suds.config.DatabaseManager;
 import ba.unsa.etf.suds.dto.DodajSvjedokaRequest;
+import ba.unsa.etf.suds.dto.SvjedokDTO;
 import ba.unsa.etf.suds.model.Adresa;
 import ba.unsa.etf.suds.model.Svjedok;
 import ba.unsa.etf.suds.repository.AdresaRepository;
@@ -30,6 +31,10 @@ public class SvjedokService {
         return svjedokRepository.findAll();
     }
 
+    public List<SvjedokDTO> getSvjedociBySlucajId(Long slucajId) {
+        return svjedokRepository.findBySlucajId(slucajId);
+    }
+
     public Svjedok dodajSvjedoka(Long slucajId, DodajSvjedokaRequest request) {
         Connection conn = null;
         try {
@@ -37,7 +42,10 @@ public class SvjedokService {
             conn.setAutoCommit(false);
 
             Adresa adresa = new Adresa();
-            adresa.setUlicaIBroj(request.getUlicaIBroj());
+            String ulica = request.getUlicaIBroj() != null
+                    ? request.getUlicaIBroj()
+                    : request.getAdresa();
+            adresa.setUlicaIBroj(ulica);
             adresa.setGrad(request.getGrad());
             adresa.setPostanskiBroj(request.getPostanskiBroj());
             adresa.setDrzava(request.getDrzava());
