@@ -1,76 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import AuthPage from './components/AuthPage.jsx'; // Importiramo našu stranicu za prijavu/registraciju
-import Dashboard from './components/Dashboard.jsx'; // Importiramo glavni Dashboard
-import { authApi } from './api.js'; // Importiramo API za autentifikaciju
+import AuthPage from './components/AuthPage.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import { authApi } from './api.js';
 
-// Glavna komponenta aplikacije koja upravlja stanjem autentifikacije
 export default function App() {
-  // Glavno stanje autentifikacije za cijelu aplikaciju
-  // Token se sada čuva u httpOnly cookie-u, ne u localStorage
   const [auth, setAuth] = useState({
-    user: null, // Korisnik se dobiva iz API-ja
+    user: null,
+    token: localStorage.getItem('token')
   });
   
-  // Stanje za provjeru da li se token još uvijek provjerava pri učitavanju
   const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect kuka se pokreće SAMO JEDNOM, kada se App komponenta prvi put učita
   useEffect(() => {
-    // Funkcija koja provjerava da li je korisnik prijavljen (cookie se automatski šalje)
     const provjeriAutentifikaciju = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setAuth({ user: null, token: null });
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Pokušaj dobiti trenutnog korisnika (cookie se automatski šalje)
         const response = await authApi.getCurrentUser();
-        if (response.data && response.data.user) {
-          setAuth({ user: response.data.user });
+        if (response.data) {
+          setAuth({ user: response.data, token: token });
         }
       } catch (error) {
-        // Ako zahtjev ne uspije (npr. nema cookie-a ili je istekao), korisnik nije prijavljen
-        setAuth({ user: null });
+        console.error("Token više nije validan:", error);
+        localStorage.removeItem('token');
+        setAuth({ user: null, token: null });
       } finally {
         setIsLoading(false);
       }
     };
 
     provjeriAutentifikaciju();
-  }, []); // Prazan niz [] znači da se ovo pokreće samo jednom (kao componentDidMount)
+  }, []);
 
-  // Funkcija koja se poziva iz LoginForm komponente nakon uspješne prijave
   const handleLogin = async (data) => {
-    
-    // Token se sada automatski postavlja u httpOnly cookie na backend-u
-    // Ne trebamo ga više čuvati u localStorage
-    const { user } = data;
+    const token = data.token;
+    localStorage.setItem('token', token);
 
-    // Ažuriraj glavno stanje aplikacije
-    setAuth({ user });
-  };
-
-  // Funkcija za odjavu (Logout)
-  const handleLogout = async () => {
     try {
-      // Pozovi logout endpoint koji briše cookie
-      await authApi.logout();
+      const userResponse = await authApi.getCurrentUser();
+      setAuth({
+        user: userResponse.data,
+        token: token
+      });
     } catch (error) {
-      console.error('Greška pri odjavi:', error);
-    } finally {
-      // Resetuj glavno stanje aplikacije
-      setAuth({ user: null });
+      console.error("Greška pri dobavljanju podataka o korisniku:", error);
     }
   };
 
-  // Ako još uvijek provjeravamo token, prikaži poruku o učitavanju
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Greška pri odjavi na serveru:', error);
+    } finally {
+      localStorage.removeItem('token');
+      setAuth({ user: null, token: null });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center text-xl font-semibold text-teal-400">
-        Učitavam aplikaciju i provjeravam autentifikaciju...
+        Učitavam aplikaciju i provjeravam token...
       </div>
     );
   }
 
-  // Glavni return:
-  // Prikazujemo Dashboard ako imamo korisnika (prijavljeni smo)
-  // Inače, prikazujemo AuthPage (stranicu za prijavu/registraciju)
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {auth.user ? (

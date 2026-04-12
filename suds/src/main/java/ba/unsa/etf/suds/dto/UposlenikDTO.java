@@ -16,4 +16,5 @@ public class UposlenikDTO {
     private String nazivUloge;     // Iz NBP_ROLE
     private String brojZnacke;     // Iz UPOSLENIK_PROFIL
     private String nazivStanice;   // Iz STANICE
+    private String status;
 }

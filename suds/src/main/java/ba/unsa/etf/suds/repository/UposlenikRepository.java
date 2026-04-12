@@ -71,6 +71,7 @@ public class UposlenikRepository {
                 u.ID AS USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.USERNAME,
                 r.NAME AS ULOGA, 
                 p.BROJ_ZNACKE, 
+                p.STATUS,  
                 s.IME_STANICE
             FROM nbp.NBP_USER u
             JOIN nbp.NBP_ROLE r ON u.ROLE_ID = r.ID
@@ -90,13 +91,43 @@ public class UposlenikRepository {
         }
         return uposlenici;
     }
+    public List<UposlenikDTO> findAllByStanicaId(Long stanicaId) {
+        List<UposlenikDTO> uposlenici = new ArrayList<>();
+        String sql = """
+            SELECT 
+                u.ID AS USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.USERNAME,
+                r.NAME AS ULOGA, 
+                p.BROJ_ZNACKE, 
+                p.STATUS,
+                s.IME_STANICE
+            FROM nbp.NBP_USER u
+            JOIN nbp.NBP_ROLE r ON u.ROLE_ID = r.ID
+            JOIN UPOSLENIK_PROFIL p ON u.ID = p.USER_ID
+            JOIN STANICE s ON p.STANICA_ID = s.STANICA_ID
+            WHERE p.STANICA_ID = ?
+        """;
 
+        try (Connection conn = dbManager.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setLong(1, stanicaId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    uposlenici.add(mapRowToDTO(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Greška pri dohvatanju uposlenika stanice", e);
+        }
+        return uposlenici;
+    }
     public Optional<UposlenikDTO> findByUserId(Long userId) {
         String sql = """
             SELECT 
                 u.ID AS USER_ID, u.FIRST_NAME, u.LAST_NAME, u.EMAIL, u.USERNAME,
                 r.NAME AS ULOGA, 
                 p.BROJ_ZNACKE, 
+                p.STATUS,  
                 s.IME_STANICE
             FROM nbp.NBP_USER u
             JOIN nbp.NBP_ROLE r ON u.ROLE_ID = r.ID
@@ -159,7 +190,8 @@ public boolean jeLiTokenUcrnojListi(String token) {
                 rs.getString("USERNAME"),
                 rs.getString("ULOGA"),
                 rs.getString("BROJ_ZNACKE"),
-                rs.getString("IME_STANICE")
+                rs.getString("IME_STANICE"),
+                rs.getString("STATUS") 
         );
     }
 
@@ -334,6 +366,69 @@ public Optional<UposlenikProfil> findProfilByUserId(Long userId) {
         }
     } catch (SQLException e) {
         throw new RuntimeException("Greška pri dohvatanju profila: " + e.getMessage(), e);
+    }
+}
+
+public boolean existsByEmailAndNotUserId(String email, Long userId) {
+    String sql = "SELECT COUNT(*) FROM nbp.NBP_USER WHERE EMAIL = ? AND ID != ?";
+    try (Connection conn = dbManager.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, email);
+        ps.setLong(2, userId);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1) > 0;
+            return false;
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Greška pri provjeri emaila: " + e.getMessage(), e);
+    }
+}
+
+public void updateBasicInfo(Long userId, String ime, String prezime, String email) {
+    String sql = "UPDATE nbp.NBP_USER SET FIRST_NAME = ?, LAST_NAME = ?, EMAIL = ? WHERE ID = ?";
+    
+    try (Connection conn = dbManager.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        
+        ps.setString(1, ime);
+        ps.setString(2, prezime);
+        ps.setString(3, email);
+        ps.setLong(4, userId);
+        
+        int rowsAffected = ps.executeUpdate();
+        if (rowsAffected == 0) {
+            throw new RuntimeException("Ažuriranje nije uspjelo, uposlenik sa ID " + userId + " nije pronađen.");
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Greška pri ažuriranju podataka u bazi: " + e.getMessage(), e);
+    }
+
+    
+}
+
+public void updatePassword(Long userId, String encodedPassword) {
+    String sql = "UPDATE nbp.NBP_USER SET PASSWORD = ? WHERE ID = ?";
+    try (Connection conn = dbManager.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, encodedPassword);
+        ps.setLong(2, userId);
+        ps.executeUpdate();
+    } catch (SQLException e) {
+        throw new RuntimeException("Greška pri ažuriranju lozinke: " + e.getMessage(), e);
+    }
+}
+
+public String getPasswordByUserId(Long userId) {
+    String sql = "SELECT PASSWORD FROM nbp.NBP_USER WHERE ID = ?";
+    try (Connection conn = dbManager.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setLong(1, userId);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getString("PASSWORD");
+            throw new RuntimeException("Korisnik nije pronađen");
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Greška pri dohvaćanju lozinke");
     }
 }
 

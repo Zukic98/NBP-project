@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authApi } from '../api.js';
 
 // --- POMOĆNA FUNKCIJA ZA VALIDACIJU LOZINKE ---
@@ -16,7 +16,7 @@ const validatePassword = (password) => {
     return "Lozinka mora sadržavati najmanje jedno veliko slovo.";
   }
   if (!hasLowercase) {
-    return "Lozinka mora sadržavati najmanje jedno malo slovo.";
+    return "Lozinka mora sadržavati najmanje malo slovo.";
   }
   if (!hasNumber) {
     return "Lozinka mora sadržavati najmanje jedan broj.";
@@ -145,13 +145,10 @@ function LoginForm({ onLogin }) {
     setIsLoading(true);
 
     try {
-      // API poziv za login
       const response = await authApi.login(email, lozinka, brojZnacke);
-      // Uspješan login - prosljeđujemo podatke roditeljskoj komponenti
-      onLogin(response.data);
+      onLogin(response.data); 
     } catch (err) {
-      // Prikaz greške korisniku, ali bez logovanja detalja u konzolu
-      const poruka = err.response?.data?.message || 'Greška pri prijavi';
+      const poruka = err.response?.data || 'Greška pri prijavi';
       setError(poruka);
     } finally {
       setIsLoading(false);
@@ -199,18 +196,22 @@ function LoginForm({ onLogin }) {
 function RegisterStationForm({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
     imeStanice: '',
+    ulicaIBroj: '', // Polje za unos ulice
+    grad: '',       // Polje za unos grada
+    postanskiBroj: '', // DODANO
     adminIme: '',
     adminEmail: '',
     adminLozinka: '',
     adminBrojZnacke: ''
   });
+  
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
   const handleChange = (e) => {
-    const fieldName = e.target.name;
-    setFormData({ ...formData, [fieldName]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -219,7 +220,6 @@ function RegisterStationForm({ onRegisterSuccess }) {
     setSuccess('');
     setIsLoading(true);
 
-    // Validacija lozinke na frontendu
     const passwordError = validatePassword(formData.adminLozinka);
     if (passwordError) {
       setError(passwordError);
@@ -228,23 +228,27 @@ function RegisterStationForm({ onRegisterSuccess }) {
     }
 
     try {
-      await authApi.registerStation(
-        formData.imeStanice,
-        formData.adminIme,
-        formData.adminEmail,
-        formData.adminLozinka,
-        formData.adminBrojZnacke
-      );
-      
-      setSuccess('Stanica uspješno registrovana! Prebacujem na prijavu...');
-      
-      setTimeout(() => {
-        onRegisterSuccess();
-      }, 2000);
+      const imePrezime = formData.adminIme.trim().split(' ');
+      const fName = imePrezime[0];
+      const lName = imePrezime.slice(1).join(' ') || 'Prezime';
 
+      await authApi.registerStation({
+        imeStanice: formData.imeStanice,
+        ulicaIBroj: formData.ulicaIBroj, 
+        grad: formData.grad,
+        postanskiBroj: formData.postanskiBroj, 
+        firstName: fName,
+        lastName: lName,
+        email: formData.adminEmail,
+        password: formData.adminLozinka,
+        username: formData.adminEmail.split('@')[0], 
+        brojZnacke: formData.adminBrojZnacke
+      });
+      
+      setSuccess('Stanica uspješno registrovana!');
+      setTimeout(() => onRegisterSuccess(), 2000);
     } catch (err) {
-      const poruka = err.response?.data?.message || 'Greška pri registraciji';
-      setError(poruka);
+      setError(err.response?.data || 'Greška pri registraciji');
     } finally {
       setIsLoading(false);
     }
@@ -253,12 +257,12 @@ function RegisterStationForm({ onRegisterSuccess }) {
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg shadow-2xl">
       <h2 className="text-3xl font-bold mb-6 text-center text-white">Registracija Stanice</h2>
-      <p className="text-center text-gray-400 mb-6 text-sm">Kreirajte nalog za svoju stanicu. Vi ćete automatski postati Administrator.</p>
       
       {error && <PorukaGreske message={error} />}
       {success && <PorukaUspjeha message={success} />}
       
       <h3 className="text-lg font-semibold text-blue-300 mb-2">Podaci o Stanici</h3>
+      
       <InputPolje
         label="Ime Stanice"
         type="text"
@@ -267,6 +271,35 @@ function RegisterStationForm({ onRegisterSuccess }) {
         vrijednost={formData.imeStanice}
         onChange={handleChange}
       />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InputPolje
+          label="Ulica"
+          type="text"
+          id="ulicaIBroj"
+          name="ulicaIBroj"
+          vrijednost={formData.ulicaIBroj}
+          onChange={handleChange}
+        />
+        <InputPolje
+          label="Grad"
+          type="text"
+          id="grad"
+          name="grad"
+          vrijednost={formData.grad}
+          onChange={handleChange}
+        />
+        <InputPolje
+          label="Poštanski Broj"
+          type="text"
+          id="postanskiBroj"
+          name="postanskiBroj"
+          vrijednost={formData.postanskiBroj}
+          onChange={handleChange}
+        />
+      </div>
+
+      <h3 className="text-lg font-semibold text-blue-300 mt-6 mb-2">Podaci o Administratoru</h3>
 
       <InputPolje
         label="Vaše Ime i Prezime"

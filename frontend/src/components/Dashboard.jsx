@@ -1,28 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { caseApi, employeeApi, validatePassword } from '../api.js';
-import CaseDetail from './CaseDetail.jsx'; // Uvozimo detalje
+import CaseDetail from './CaseDetail.jsx'; 
 import AdminPanel from './AdminPanel.jsx';
 import CaseList from './CaseList.jsx';
 import ChangePasswordModal from './ChangePasswordModal.jsx';
 
-// --- Pomoćne (UI) Komponente ---
-// Ove komponente su definisane ovdje da bi ovaj fajl bio samostalan
-
-
-
-// --- 3. Glavna Komponenta (Dashboard) ---
 export default function Dashboard({ auth, onLogout }) {
   const [view, setView] = useState('list'); // 'list' ili 'detail'
   const [selectedCaseId, setSelectedCaseId] = useState(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
-  // Funkcija koju poziva CaseList kada korisnik klikne na broj slučaja
   const handleSelectCase = (id) => {
     setSelectedCaseId(id);
     setView('detail');
   };
 
-  // Funkcija koju poziva CaseDetail kada korisnik klikne "Nazad"
   const handleBackToList = () => {
     setSelectedCaseId(null);
     setView('list');
@@ -30,25 +22,24 @@ export default function Dashboard({ auth, onLogout }) {
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">
-      {/* Zaglavlje Dashboarda */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 p-6 bg-gray-800 rounded-lg border border-gray-700">
         <div className="mb-4 md:mb-0">
           <h1 className="text-3xl font-bold text-white">🚔 SUDS Dashboard</h1>
           <div className="flex flex-wrap items-center gap-4 mt-2">
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-              <span className="text-gray-400">{auth.user.ime_stanice}</span>
+              <span className="text-gray-400">{auth.user.nazivStanice || "Neznata stanica"}</span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-              <span className="text-gray-400">Prijavljeni ste kao: <span className="text-white font-medium">{auth.user.ime_prezime}</span></span>
+              <span className="text-gray-400">Prijavljeni ste kao: <span className="text-white font-medium">{auth.user.ime} {auth.user.prezime}</span></span>
             </div>
             <div className="flex items-center">
               <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-              <span className="text-gray-400">Uloga: <span className={`font-medium ${auth.user.uloga === 'Administrator' ? 'text-red-400' :
-                  auth.user.uloga === 'Inspektor' ? 'text-blue-400' :
+              <span className="text-gray-400">Uloga: <span className={`font-medium ${auth.user.nazivUloge === 'SEF_STANICE' ? 'text-red-400' :
+                  auth.user.nazivUloge === 'Inspektor' ? 'text-blue-400' :
                     'text-yellow-400'
-                }`}>{auth.user.uloga}</span></span>
+                }`}>{auth.user.nazivUloge}</span></span>
             </div>
           </div>
         </div>
@@ -76,14 +67,18 @@ export default function Dashboard({ auth, onLogout }) {
       </header>
 
       {/* Modal za promjenu lozinke */}
-      <ChangePasswordModal 
-        isOpen={isChangePasswordModalOpen}
-        onClose={() => setIsChangePasswordModalOpen(false)}
-      />
+        <ChangePasswordModal 
+          isOpen={isChangePasswordModalOpen}
+          onClose={() => setIsChangePasswordModalOpen(false)}
+          currentUser={auth.user} // DODAJ OVO
+        />
 
       <main className="space-y-8">
-        {/* Prikazujemo Admin Panel samo ako je korisnik Administrator i ako smo u list view */}
-        {auth.user.uloga === 'Administrator' && view === 'list' && <AdminPanel auth={auth} />}
+        {auth.user.nazivUloge === 'SEF_STANICE' && view === 'list' && (
+            <div className="animate-in fade-in duration-500">
+                <AdminPanel auth={auth} />
+            </div>
+        )}
 
         {/* Glavni sadržaj (Lista ili Detalji) */}
         {view === 'list' ? (

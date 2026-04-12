@@ -25,8 +25,17 @@ public class UposlenikController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UposlenikDTO>> getAll() {
-        return ResponseEntity.ok(uposlenikService.getAllUposlenici());
+    public ResponseEntity<List<UposlenikDTO>> getAll(HttpServletRequest httpRequest) {
+        try {
+            String token = extractToken(httpRequest);
+            Long stanicaId = jwtUtil.extractStanicaId(token);
+            
+            List<UposlenikDTO> uposlenici = uposlenikService.getUposleniciPoStanici(stanicaId);
+            
+            return ResponseEntity.ok(uposlenici);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/{id}")
@@ -34,18 +43,49 @@ public class UposlenikController {
         return ResponseEntity.ok(uposlenikService.getUposlenikById(id));
     }
 
-    @PostMapping
+    @PutMapping("/{id}")
+    public ResponseEntity<?> azurirajPodatke(
+            @PathVariable Long id,
+            @RequestBody UposlenikDTO request,
+            HttpServletRequest httpRequest) {
+        try {
+            String token = extractToken(httpRequest);
+            Long stanicaId = jwtUtil.extractStanicaId(token);
+
+            uposlenikService.azurirajPodatke(id, request, stanicaId);
+
+            return ResponseEntity.ok("Podaci uposlenika uspješno ažurirani!");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Greška: " + e.getMessage());
+        }
+    }
+    @PutMapping("/{id}/password-reset")
+public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.util.Map<String, String> request, HttpServletRequest httpRequest) {
+    String token = extractToken(httpRequest);
+    Long stanicaId = jwtUtil.extractStanicaId(token);
+    uposlenikService.resetujLozinku(id, request.get("novaLozinka"), stanicaId);
+    return ResponseEntity.ok("Lozinka uspješno resetovana.");
+}
+
+   @PostMapping
     public ResponseEntity<?> dodajUposlenika(
             @RequestBody DodajUposlenikaRequest request,
             HttpServletRequest httpRequest) {
         
-        String token = extractToken(httpRequest);
-        Long stanicaId = jwtUtil.extractStanicaId(token);
-        
-        uposlenikService.dodajUposlenika(request, stanicaId);
-        
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Uposlenik uspješno dodat!");
+        try {
+            String token = extractToken(httpRequest);
+            Long stanicaId = jwtUtil.extractStanicaId(token);
+            
+            uposlenikService.dodajUposlenika(request, stanicaId);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body("Uposlenik uspješno dodat!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Greška: " + e.getMessage());
+        }
     }
 
     @PutMapping("/{id}/status")
@@ -54,14 +94,24 @@ public class UposlenikController {
             @RequestBody PromijeniStatusRequest request,
             HttpServletRequest httpRequest) {
         
-        String token = extractToken(httpRequest);
-        Long stanicaId = jwtUtil.extractStanicaId(token);
-        String currentUserIdStr = jwtUtil.extractUserId(token);
-        Long currentUserId = Long.parseLong(currentUserIdStr);
-        
-        uposlenikService.promijeniStatus(id, request, stanicaId, currentUserId);
-        
-        return ResponseEntity.ok("Status promijenjen u: " + request.getStatus());
+        try {
+            String token = extractToken(httpRequest);
+            Long stanicaId = jwtUtil.extractStanicaId(token);
+            String currentUserIdStr = jwtUtil.extractUserId(token);
+            Long currentUserId = Long.parseLong(currentUserIdStr);
+            
+            uposlenikService.promijeniStatus(id, request, stanicaId, currentUserId);
+            
+            return ResponseEntity.ok("Status uspješno promijenjen u: " + request.getStatus());
+
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Došlo je do neočekivane greške: " + e.getMessage());
+        }
     }
 
     private String extractToken(HttpServletRequest request) {

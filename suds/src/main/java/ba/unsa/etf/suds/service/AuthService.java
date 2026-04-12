@@ -22,25 +22,25 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        UposlenikLoginDTO uposlenik = uposlenikRepository.findByEmailAndZnacka(request.getEmail(), request.getBrojZnacke())
-                .orElseThrow(() -> new RuntimeException("Nevalidni podaci: Korisnik nije pronađen!"));
+    UposlenikLoginDTO uposlenik = uposlenikRepository.findByEmailAndZnacka(request.getEmail(), request.getBrojZnacke())
+            .orElseThrow(() -> new RuntimeException("Nevalidni podaci: Korisnik nije pronađen!"));
 
-        if ("Penzionisan".equalsIgnoreCase(uposlenik.getStatus()) || "Otpušten".equalsIgnoreCase(uposlenik.getStatus())) {
-            throw new RuntimeException("Pristup odbijen: Vaš nalog je deaktiviran (Status: " + uposlenik.getStatus() + ")");
-        }
-
-        if (!passwordEncoder.matches(request.getPassword(), uposlenik.getPassword())) {
-            throw new RuntimeException("Nevalidni podaci: Pogrešna lozinka!");
-        }
-
-        String token = jwtUtil.generateToken(
-                uposlenik.getUserId(), 
-                uposlenik.getUloga(), 
-                uposlenik.getStanicaId()
-        );
-
-        return new LoginResponse(token, "Bearer");
+    if (!passwordEncoder.matches(request.getPassword(), uposlenik.getPassword())) {
+        throw new RuntimeException("Nevalidni podaci: Pogrešna lozinka!");
     }
+
+    if ("Penzionisan".equalsIgnoreCase(uposlenik.getStatus()) || "Otpušten".equalsIgnoreCase(uposlenik.getStatus())) {
+        throw new RuntimeException("Pristup odbijen: Vaš nalog je deaktiviran (" + uposlenik.getStatus() + ")");
+    }
+
+    String token = jwtUtil.generateToken(
+            uposlenik.getUserId(), 
+            uposlenik.getUloga(), 
+            uposlenik.getStanicaId()
+    );
+
+    return new LoginResponse(token, "Bearer");
+}
 
     public void logout(String authHeader) {
     if (authHeader != null && authHeader.startsWith("Bearer ")) {
