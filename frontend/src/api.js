@@ -69,6 +69,7 @@ const authApi = {
 // --- API za Slučajeve (Cases) ---
 const caseApi = {
   getAll: async () => api.get('/slucajevi'),
+  getMyCases: async () => api.get('/slucajevi/moji'),
   getById: async (caseId) => api.get(`/slucajevi/${caseId}`),
   create: async (brojSlucaja, opis) => api.post('/slucajevi', { brojSlucaja, opis }),
   updateStatus: async (caseId, newStatus) => api.patch(`/slucajevi/${caseId}/status`, { status: newStatus }),
@@ -101,7 +102,7 @@ const employeeApi = {
 const evidenceApi = {
   getByCaseId: async (caseId) => api.get(`/slucajevi/${caseId}/dokazi`),
   create: async (caseId, opis, lokacija, tipDokaza) => 
-    api.post(`/slucajevi/${caseId}/dokazi`, { opis, lokacija, tipDokaza }),
+    api.post(`/slucajevi/${caseId}/dokazi`, { opis, lokacija_pronalaska: lokacija, tip_dokaza: tipDokaza }),
   getStanjeDokaza: async (dokazId) => api.get(`/dokazi/${dokazId}/stanje`),
   getLanacNadzora: async (dokazId) => api.get(`/dokazi/${dokazId}/lanac`),
   updateStatus: async (dokazId, status) => api.patch(`/dokazi/${dokazId}/status`, { status }),
@@ -112,9 +113,14 @@ const chainOfCustodyApi = {
   getForEvidence: async (dokazId) => api.get(`/dokazi/${dokazId}/lanac`),
   createEntry: async (dokazId, preuzeo_uposlenik_id, svrha) => 
     api.post(`/dokazi/${dokazId}/primopredaja`, { preuzeo_uposlenik_id, svrha }),
+  evidentirajPrimopredaju: async (dokazId, data) =>
+    api.post(`/dokazi/${dokazId}/primopredaja`, data),
   getZahtjeviZaPotvrdu: async () => api.get('/primopredaje/ceka-potvrdu'),
+  getMojaSlanjaCekaPotvrdu: async () => api.get('/primopredaje/moja-slanja'),
   potvrdiPrimopredaju: async (unosId, status, napomena) => 
     api.patch(`/lanac-nadzora/${unosId}/potvrda`, { status, napomena }),
+  ponistiSlanje: async (unosId, razlog) =>
+    api.delete(`/primopredaje/${unosId}/ponisti`, { data: { razlog } }),
 };
 
 // --- API za Tim na Slučaju (Team) ---

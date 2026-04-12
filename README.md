@@ -54,6 +54,10 @@ db:
   url: jdbc:oracle:thin:@//YOUR_HOST:PORT/YOUR_SERVICE_NAME
   username: YOUR_USERNAME
   password: YOUR_PASSWORD
+
+jwt:
+  secret: JWT_SECRET
+  expiration-ms: EXPIRATION_MS
 ```
 
 ### 4. Build and Run

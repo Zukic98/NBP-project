@@ -5,6 +5,10 @@ import ba.unsa.etf.suds.dto.PromijeniStatusRequest;
 import ba.unsa.etf.suds.dto.UposlenikDTO;
 import ba.unsa.etf.suds.security.JwtUtil;
 import ba.unsa.etf.suds.service.UposlenikService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/uposlenici")
+@Tag(name = "Uposlenici", description = "Upravljanje uposlenicima")
 public class UposlenikController {
 
     private final UposlenikService uposlenikService;
@@ -25,6 +30,11 @@ public class UposlenikController {
     }
 
     @GetMapping
+    @Operation(summary = "Dohvati sve uposlenike stanice")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista uposlenika vraćena"),
+            @ApiResponse(responseCode = "500", description = "Greška na serveru")
+    })
     public ResponseEntity<List<UposlenikDTO>> getAll(HttpServletRequest httpRequest) {
         try {
             String token = extractToken(httpRequest);
@@ -39,11 +49,22 @@ public class UposlenikController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Dohvati uposlenika po ID-u")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Uposlenik pronađen"),
+            @ApiResponse(responseCode = "404", description = "Uposlenik nije pronađen")
+    })
     public ResponseEntity<UposlenikDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(uposlenikService.getUposlenikById(id));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Ažuriraj podatke uposlenika")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Podaci uposlenika ažurirani"),
+            @ApiResponse(responseCode = "400", description = "Neispravan zahtjev"),
+            @ApiResponse(responseCode = "403", description = "Zabranjen pristup")
+    })
     public ResponseEntity<?> azurirajPodatke(
             @PathVariable Long id,
             @RequestBody UposlenikDTO request,
@@ -62,6 +83,11 @@ public class UposlenikController {
         }
     }
     @PutMapping("/{id}/password-reset")
+    @Operation(summary = "Resetuj lozinku uposlenika")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lozinka resetovana"),
+            @ApiResponse(responseCode = "404", description = "Uposlenik nije pronađen")
+    })
 public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.util.Map<String, String> request, HttpServletRequest httpRequest) {
     String token = extractToken(httpRequest);
     Long stanicaId = jwtUtil.extractStanicaId(token);
@@ -70,6 +96,12 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
 }
 
    @PostMapping
+    @Operation(summary = "Dodaj novog uposlenika")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Uposlenik dodan"),
+            @ApiResponse(responseCode = "400", description = "Neispravan zahtjev"),
+            @ApiResponse(responseCode = "500", description = "Greška na serveru")
+    })
     public ResponseEntity<?> dodajUposlenika(
             @RequestBody DodajUposlenikaRequest request,
             HttpServletRequest httpRequest) {
@@ -89,6 +121,13 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
     }
 
     @PutMapping("/{id}/status")
+    @Operation(summary = "Promijeni status uposlenika")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Status uposlenika promijenjen"),
+            @ApiResponse(responseCode = "400", description = "Neispravan zahtjev"),
+            @ApiResponse(responseCode = "403", description = "Zabranjen pristup"),
+            @ApiResponse(responseCode = "500", description = "Greška na serveru")
+    })
     public ResponseEntity<?> promijeniStatus(
             @PathVariable Long id,
             @RequestBody PromijeniStatusRequest request,

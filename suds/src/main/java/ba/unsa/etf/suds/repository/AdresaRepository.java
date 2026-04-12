@@ -62,7 +62,23 @@ public class AdresaRepository {
         }
     }
 
-    // Help method for mapping row from database to Java object
+    public Long saveWithConnection(Connection conn, Adresa adresa) throws SQLException {
+        String sql = "INSERT INTO Adrese (ulica_i_broj, grad, postanski_broj, drzava) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, adresa.getUlicaIBroj());
+            stmt.setString(2, adresa.getGrad());
+            stmt.setString(3, adresa.getPostanskiBroj());
+            stmt.setString(4, adresa.getDrzava());
+            stmt.executeUpdate();
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
+                }
+            }
+            throw new SQLException("No generated key returned for Adresa insert");
+        }
+    }
+
     private Adresa mapRowToAdresa(ResultSet rs) throws SQLException {
         return new Adresa(
                 rs.getLong("adresa_id"),
