@@ -17,7 +17,32 @@ public class OsumnjiceniRepository {
         this.dbManager = dbManager;
     }
 
-    // CREATE
+    public Long saveWithConnection(Connection conn, Osumnjiceni osumnjiceni) throws SQLException {
+        String sql = "INSERT INTO OSUMNJICENI (IME_PREZIME, JMBG, ADRESA_ID, DATUM_RODJENJA) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"OSUMNJICENI_ID"})) {
+            stmt.setString(1, osumnjiceni.getImePrezime());
+            stmt.setString(2, osumnjiceni.getJmbg());
+            stmt.setLong(3, osumnjiceni.getAdresaId());
+            stmt.setDate(4, osumnjiceni.getDatumRodjenja());
+            stmt.executeUpdate();
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
+                }
+            }
+            throw new SQLException("No generated key returned for Osumnjiceni insert");
+        }
+    }
+
+    public void linkToSlucaj(Connection conn, Long slucajId, Long osumnjiceniId) throws SQLException {
+        String sql = "INSERT INTO SLUCAJ_OSUMNJICENI (SLUCAJ_ID, OSUMNJICENI_ID) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, slucajId);
+            stmt.setLong(2, osumnjiceniId);
+            stmt.executeUpdate();
+        }
+    }
+
     public void save(Osumnjiceni osumnjiceni) {
         String sql = "INSERT INTO OSUMNJICENI (IME_PREZIME, JMBG, ADRESA_ID, DATUM_RODJENJA) VALUES (?, ?, ?, ?)";
         try (Connection conn = dbManager.getConnection();
