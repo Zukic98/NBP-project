@@ -1,7 +1,7 @@
 package ba.unsa.etf.suds.controller;
 
 import ba.unsa.etf.suds.dto.KreirajSlucajRequest;
-import ba.unsa.etf.suds.model.Slucaj;
+import ba.unsa.etf.suds.dto.SlucajListDTO;
 import ba.unsa.etf.suds.security.JwtUtil;
 import ba.unsa.etf.suds.service.OsumnjiceniService;
 import ba.unsa.etf.suds.service.SlucajService;
@@ -68,7 +68,7 @@ class SlucajControllerRbacTest {
         request.setDrzava("BiH");
         request.setTim(List.of());
 
-        Slucaj expectedSlucaj = new Slucaj();
+        SlucajListDTO expectedSlucaj = new SlucajListDTO();
         expectedSlucaj.setSlucajId(1L);
         expectedSlucaj.setBrojSlucaja("SLU-2026-001");
 
@@ -88,7 +88,7 @@ class SlucajControllerRbacTest {
         request.setStanicaId(1L);
         request.setBrojSlucaja("SLU-2026-002");
 
-        Slucaj slucaj = new Slucaj();
+        SlucajListDTO slucaj = new SlucajListDTO();
         slucaj.setSlucajId(2L);
         when(slucajService.kreirajSlucaj(any(), any())).thenReturn(slucaj);
 
