@@ -155,8 +155,7 @@ export default function CaseList({ auth, onSelectCase }) {
         // Ako korisnik nije administrator, dodaj samo ako je taj korisnik dodijeljen slučaju
         if (auth.user.uloga !== 'Administrator') {
           // Provjeri je li novi slučaj dodijeljen ovom korisniku
-          const jeDodijeljenMeni = noviSlucaj.voditelj_slucaja_id === auth.user.userId || 
-                                   noviSlucaj.voditelj_slucaja === auth.user.ime;
+          const jeDodijeljenMeni = noviSlucaj.voditelj_slucaja === auth.user.ime;
           
           if (jeDodijeljenMeni) {
             return [noviSlucaj, ...trenutniSlucajevi];

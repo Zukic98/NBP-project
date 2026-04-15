@@ -3,6 +3,7 @@ package ba.unsa.etf.suds.service;
 import ba.unsa.etf.suds.config.DatabaseManager;
 import ba.unsa.etf.suds.dto.IzvjestajDTO;
 import ba.unsa.etf.suds.dto.KreirajSlucajRequest;
+import ba.unsa.etf.suds.dto.SlucajListDTO;
 import ba.unsa.etf.suds.model.Slucaj;
 import ba.unsa.etf.suds.repository.AdresaRepository;
 import ba.unsa.etf.suds.repository.IzvjestajRepository;
@@ -92,12 +93,19 @@ class SlucajServiceTest {
         when(adresaRepository.saveWithConnection(any(Connection.class), any())).thenReturn(2L);
         when(slucajRepository.saveWithConnection(any(Connection.class), any())).thenReturn(2L);
 
-        Slucaj result = slucajService.kreirajSlucaj(request, 1L);
+        SlucajListDTO expectedDto = new SlucajListDTO();
+        expectedDto.setSlucajId(2L);
+        expectedDto.setBrojSlucaja("SLU-2026-002");
+        when(slucajRepository.findByIdWithVoditelj(2L)).thenReturn(Optional.of(expectedDto));
+
+        SlucajListDTO result = slucajService.kreirajSlucaj(request, 1L);
 
         assertNotNull(result);
-        assertEquals(2L, getField(result, "slucajId"));
+        assertEquals(2L, result.getSlucajId());
+        assertEquals("SLU-2026-002", result.getBrojSlucaja());
         verify(mockConnection, times(1)).commit();
         verify(mockConnection, never()).rollback();
+        verify(slucajRepository).findByIdWithVoditelj(2L);
     }
 
     @Test
