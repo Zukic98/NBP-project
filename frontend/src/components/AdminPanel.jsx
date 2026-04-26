@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Plus, Edit, X, Search, Lock } from 'lucide-react';
-import { employeeApi, authApi, validatePassword } from '../api.js';
+import { employeeApi, validatePassword } from '../api.js';
 import AdminChangePasswordModal from './AdminChangePasswordModal.jsx';
 
 export function InputPolje({ type = 'text', name, placeholder, value, onChange, required = true, disabled = false }) {
@@ -144,22 +144,9 @@ function EditModal({ isOpen, onClose, uposlenik, onSave, isSaving, error, succes
 }
 
 export default function AdminPanel({ auth }) {
-  const [stationMsg, setStationMsg] = useState({ error: '', success: '', loading: false });
   const [empMsg, setEmpMsg] = useState({ error: '', success: '', loading: false });
   const [updateMsg, setUpdateMsg] = useState({ error: '', success: '', loading: false });
-  
-  const [stationData, setStationData] = useState({ 
-    imeStanice: '', 
-    ulicaIBroj: '', 
-    grad: '', 
-    postanskiBroj: '',
-    sefIme: '', 
-    sefPrezime: '', 
-    sefEmail: '', 
-    sefPassword: '', 
-    sefZnacka: '' 
-  });
-  
+
   const [formData, setFormData] = useState({ 
     firstName: '', 
     lastName: '', 
@@ -185,44 +172,6 @@ export default function AdminPanel({ auth }) {
       const response = await employeeApi.getAll();
       setUposlenici(response.data);
     } catch (err) { console.error(err); } finally { setIsLoadingList(false); }
-  };
-
-  const handleStationSubmit = async (e) => {
-    e.preventDefault();
-    setStationMsg({ error: '', success: '', loading: true });
-    
-    //Provjera lozinke za šefa
-    const passError = validatePassword(stationData.sefPassword);
-    if (passError) {
-      setStationMsg({ error: `Šef: ${passError}`, success: '', loading: false });
-      return;
-    }
-
-    try {
-      await authApi.registerStation({
-        imeStanice: stationData.imeStanice,
-        ulicaIBroj: stationData.ulicaIBroj, 
-        grad: stationData.grad,
-        postanskiBroj: stationData.postanskiBroj,
-        firstName: stationData.sefIme,
-        lastName: stationData.sefPrezime,
-        email: stationData.sefEmail,
-        password: stationData.sefPassword,
-        username: stationData.sefEmail.split('@')[0], 
-        brojZnacke: stationData.sefZnacka
-      });
-      
-      setStationMsg({ error: '', success: 'Stanica i šef uspješno registrovani!', loading: false });
-      
-      setStationData({ 
-        imeStanice: '', ulicaIBroj: '', grad: '', postanskiBroj: '', 
-        sefIme: '', sefPrezime: '', sefEmail: '', sefPassword: '', sefZnacka: '' 
-      });
-      
-      setTimeout(() => setStationMsg(prev => ({ ...prev, success: '' })), 4000);
-    } catch (err) {
-      setStationMsg({ error: err.response?.data || 'Greška pri registraciji stanice.', success: '', loading: false });
-    }
   };
 
   const handleEmployeeSubmit = async (e) => {
@@ -271,44 +220,6 @@ export default function AdminPanel({ auth }) {
 
   return (
     <div className="space-y-8">
-      {/* SEKCIJA 1: REGISTRACIJA STANICE */}
-      <Sekcija naslov="🏢 Registracija Nove Stanice">
-        <PorukaGreske message={stationMsg.error} />
-        <PorukaUspjeha message={stationMsg.success} />
-        <form onSubmit={handleStationSubmit} className="space-y-6">
-          
-          <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-700 space-y-4">
-            <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider">Lokacija i Naziv</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputPolje placeholder="Naziv Stanice (npr. PU Centar)" value={stationData.imeStanice} onChange={e => setStationData({...stationData, imeStanice: e.target.value})} />
-              <InputPolje placeholder="Ulica i Broj" value={stationData.ulicaIBroj} onChange={e => setStationData({...stationData, ulicaIBroj: e.target.value})} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputPolje placeholder="Grad" value={stationData.grad} onChange={e => setStationData({...stationData, grad: e.target.value})} />
-              <InputPolje placeholder="Poštanski Broj" value={stationData.postanskiBroj} onChange={e => setStationData({...stationData, postanskiBroj: e.target.value})} />
-            </div>
-          </div>
-
-          <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-700 space-y-4">
-            <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider">Prvi Šef Stanice (Admin)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <InputPolje placeholder="Ime" value={stationData.sefIme} onChange={e => setStationData({...stationData, sefIme: e.target.value})} />
-              <InputPolje placeholder="Prezime" value={stationData.sefPrezime} onChange={e => setStationData({...stationData, sefPrezime: e.target.value})} />
-              <InputPolje placeholder="Email" value={stationData.sefEmail} onChange={e => setStationData({...stationData, sefEmail: e.target.value})} />
-              <InputPolje type="password" placeholder="Lozinka" value={stationData.sefPassword} onChange={e => setStationData({...stationData, sefPassword: e.target.value})} />
-            </div>
-            <div className="w-full md:w-1/4">
-                <InputPolje placeholder="Broj Značke" value={stationData.sefZnacka} onChange={e => setStationData({...stationData, sefZnacka: e.target.value})} />
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <AkcijaDugme isLoading={stationMsg.loading} tekst="Kreiraj Stanicu i Šefa" variant="primary" />
-          </div>
-        </form>
-      </Sekcija>
-
-      {/* SEKCIJA 2: UPOSLENICI */}
       <Sekcija naslov="👨‍💼 Upravljanje Uposlenicima">
         <div className="mb-10 bg-gray-900/30 p-5 rounded-lg border border-gray-700">
           <h3 className="text-lg font-bold mb-4 text-blue-400 flex items-center"><Plus className="mr-2 w-5 h-5" /> Dodaj Uposlenika</h3>
