@@ -294,10 +294,10 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
 
   // Glavni Prikaz
   return (
-    <div>
+    <div className="space-y-6">
       <button
         onClick={onBackToList}
-        className="mb-6 text-sm text-blue-400 hover:underline"
+        className="text-sm text-blue-400 hover:underline"
       >
         &larr; Nazad na sve slučajeve
       </button>
