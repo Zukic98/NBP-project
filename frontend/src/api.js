@@ -4,11 +4,20 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
 });
 
+// Public endpoints that should never carry a stale Authorization header.
+// Sending Bearer tokens to these triggers JwtFilter (blacklist lookup, etc.)
+// on requests that are intentionally unauthenticated, which can cause
+// confusing 401/403 responses and stuck-token loops in the browser.
+const PUBLIC_PATHS = ['/auth/login', '/stanice/register'];
+
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const isPublic = PUBLIC_PATHS.some((p) => (config.url || '').startsWith(p));
+    if (!isPublic) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
