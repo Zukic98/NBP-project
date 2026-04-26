@@ -46,7 +46,7 @@ public class SlucajService {
         return slucajRepository.findDetaljiByBroj(brojSlucaja);
     }
 
-    public Slucaj kreirajSlucaj(KreirajSlucajRequest request, Long voditeljUserId) {
+    public SlucajListDTO kreirajSlucaj(KreirajSlucajRequest request, Long voditeljUserId) {
         Connection conn = null;
         try {
             conn = dbManager.getConnection();
@@ -81,8 +81,8 @@ public class SlucajService {
 
             conn.commit();
 
-            slucaj.setSlucajId(slucajId);
-            return slucaj;
+            return slucajRepository.findByIdWithVoditelj(slucajId)
+                    .orElseThrow(() -> new RuntimeException("Failed to fetch created case with ID: " + slucajId));
 
         } catch (SQLException e) {
             if (conn != null) {

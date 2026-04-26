@@ -139,7 +139,7 @@ public class SlucajController {
                 request.setStanicaId(stanicaId);
             }
 
-            Slucaj slucaj = slucajService.kreirajSlucaj(request, userId);
+            SlucajListDTO slucaj = slucajService.kreirajSlucaj(request, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(slucaj);
         } catch (RuntimeException e) {
             e.printStackTrace();
