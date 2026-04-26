@@ -90,7 +90,7 @@ function Sekcija({ naslov, children }) {
 }
 
 // --- Glavna Komponenta ---
-export default function EvidenceSection({ caseId, auth, caseStatus, onPrimopredajaCreated, onDokazStatusChanged }) {
+export default function EvidenceSection({ caseId, auth, caseStatus, onPrimopredajaCreated, onDokazStatusChanged, onRefresh }) {
   // Provjeri da li je slučaj u read-only statusu
   const isReadOnly = caseStatus === 'Zatvoren' || caseStatus === 'Arhiviran';
   const isAdmin = auth.user.uloga === 'Administrator';
@@ -193,6 +193,16 @@ export default function EvidenceSection({ caseId, auth, caseStatus, onPrimopreda
       ucitajTrenutneNosioce(dokazi);
     }
   };
+
+  // Eksponiraj refresh roditelju (issue #19): kad inspektor potvrdi primopredaju
+  // u HandoverApproval, CaseDetail mora moći osvježiti panel "Dokazi" da bi
+  // se "Trenutno kod" odmah promijenilo na "Vas". Zatvaramo se preko najnovijeg
+  // dokazi state-a tako što re-registriramo callback kad god se dokazi promijene.
+  useEffect(() => {
+    if (onRefresh) {
+      onRefresh(() => osvjeziTrenutneNosioce());
+    }
+  }, [onRefresh, dokazi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

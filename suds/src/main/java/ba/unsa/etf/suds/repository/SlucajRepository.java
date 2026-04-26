@@ -143,7 +143,7 @@ public class SlucajRepository {
             stmt.setLong(1, slucaj.getStanicaId());
             stmt.setString(2, slucaj.getBrojSlucaja());
             stmt.setString(3, slucaj.getOpis());
-            stmt.setString(4, slucaj.getStatus() != null ? slucaj.getStatus() : "Aktivan");
+            stmt.setString(4, slucaj.getStatus() != null ? slucaj.getStatus() : "Otvoren");
             stmt.setLong(5, slucaj.getVoditeljUserId());
             stmt.setTimestamp(6, slucaj.getDatumKreiranja() != null
                     ? slucaj.getDatumKreiranja()
@@ -233,13 +233,19 @@ public class SlucajRepository {
     public List<MojSlucajDTO> findMojiSlucajevi(Long userId, String roleName) {
         List<MojSlucajDTO> rezultat = new ArrayList<>();
         String sql;
+        boolean voditeljniRole = "Inspektor".equalsIgnoreCase(roleName)
+                || "INSPEKTOR".equalsIgnoreCase(roleName)
+                || "Šef".equalsIgnoreCase(roleName)
+                || "SEF_STANICE".equalsIgnoreCase(roleName);
 
-        if ("Inspektor".equalsIgnoreCase(roleName) || "Šef".equalsIgnoreCase(roleName)) {
+        if (voditeljniRole) {
             sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
-                  "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS IME_VODITELJA, 'Voditelj' AS ULOGA " +
+                  "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS IME_VODITELJA, " +
+                  "CASE WHEN s.VODITELJ_USER_ID = ? THEN 'Voditelj' ELSE t.ULOGA_NA_SLUCAJU END AS ULOGA " +
                   "FROM SLUCAJEVI s " +
                   "LEFT JOIN nbp.NBP_USER u ON s.VODITELJ_USER_ID = u.ID " +
-                  "WHERE s.VODITELJ_USER_ID = ?";
+                  "LEFT JOIN TIM_NA_SLUCAJU t ON s.SLUCAJ_ID = t.SLUCAJ_ID AND t.USER_ID = ? " +
+                  "WHERE s.VODITELJ_USER_ID = ? OR t.USER_ID = ?";
         } else {
             sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
                   "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS IME_VODITELJA, t.ULOGA_NA_SLUCAJU AS ULOGA " +
@@ -251,11 +257,23 @@ public class SlucajRepository {
 
         try (Connection conn = dbManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, userId);
+            if (voditeljniRole) {
+                stmt.setLong(1, userId);
+                stmt.setLong(2, userId);
+                stmt.setLong(3, userId);
+                stmt.setLong(4, userId);
+            } else {
+                stmt.setLong(1, userId);
+            }
             try (ResultSet rs = stmt.executeQuery()) {
+                java.util.Set<Long> seen = new java.util.HashSet<>();
                 while (rs.next()) {
+                    Long slucajId = rs.getLong("SLUCAJ_ID");
+                    if (!seen.add(slucajId)) {
+                        continue;
+                    }
                     MojSlucajDTO dto = new MojSlucajDTO();
-                    dto.setSlucajId(rs.getLong("SLUCAJ_ID"));
+                    dto.setSlucajId(slucajId);
                     dto.setBrojSlucaja(rs.getString("BROJ_SLUCAJA"));
                     dto.setOpis(rs.getString("OPIS"));
                     dto.setStatus(rs.getString("STATUS"));

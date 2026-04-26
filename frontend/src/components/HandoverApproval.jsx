@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { chainOfCustodyApi } from '../api.js';
 
-export default function HandoverApproval({ auth, onRefresh }) {
+export default function HandoverApproval({ auth, onRefresh, onPrimopredajaProcessed }) {
   const [zahtjevi, setZahtjevi] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -54,9 +54,12 @@ export default function HandoverApproval({ auth, onRefresh }) {
       setSuccess(`Primopredaja uspješno ${potvrdaForm.status.toLowerCase()}`);
       setSelectedUnos(null);
       setPotvrdaForm({ status: 'Potvrđeno', napomena: '' });
-      
-      // Osvježi listu
+
       ucitajZahtjeve();
+
+      if (onPrimopredajaProcessed) {
+        onPrimopredajaProcessed(potvrdaForm.status);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Greška pri potvrdi');
     }
