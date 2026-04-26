@@ -143,7 +143,7 @@ public class SlucajRepository {
             stmt.setLong(1, slucaj.getStanicaId());
             stmt.setString(2, slucaj.getBrojSlucaja());
             stmt.setString(3, slucaj.getOpis());
-            stmt.setString(4, slucaj.getStatus() != null ? slucaj.getStatus() : "Aktivan");
+            stmt.setString(4, slucaj.getStatus() != null ? slucaj.getStatus() : "Otvoren");
             stmt.setLong(5, slucaj.getVoditeljUserId());
             stmt.setTimestamp(6, slucaj.getDatumKreiranja() != null
                     ? slucaj.getDatumKreiranja()

@@ -63,7 +63,7 @@ public class SlucajService {
             slucaj.setStanicaId(request.getStanicaId());
             slucaj.setBrojSlucaja(request.getBrojSlucaja());
             slucaj.setOpis(request.getOpis());
-            slucaj.setStatus("Aktivan");
+            slucaj.setStatus("Otvoren");
             slucaj.setVoditeljUserId(voditeljUserId);
             slucaj.setDatumKreiranja(new Timestamp(System.currentTimeMillis()));
             Long slucajId = slucajRepository.saveWithConnection(conn, slucaj);
@@ -118,9 +118,9 @@ public class SlucajService {
     }
 
     public boolean updateSlucajStatus(Long id, String status) {
-        Set<String> allowedStatuses = Set.of("Aktivan", "Zatvoren", "Arhiviran");
+        Set<String> allowedStatuses = Set.of("Otvoren", "Zatvoren", "Arhiviran");
         if (status == null || !allowedStatuses.contains(status)) {
-            throw new IllegalArgumentException("Neispravan status. Dozvoljeno: Aktivan, Zatvoren, Arhiviran.");
+            throw new IllegalArgumentException("Neispravan status. Dozvoljeno: Otvoren, Zatvoren, Arhiviran.");
         }
         return slucajRepository.updateStatus(id, status);
     }
