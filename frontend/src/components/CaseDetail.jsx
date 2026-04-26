@@ -28,6 +28,10 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
   const refreshPendingHandoversRef = useRef(null);
   // Ref za funkciju osvježavanja HandoverApproval
   const refreshHandoverApprovalRef = useRef(null);
+  // Ref za funkciju osvježavanja statusa dokaza u EvidenceSection (issue #19).
+  // Bez ovoga, nakon što inspektor potvrdi primopredaju, panel "Dokazi"
+  // ne mijenja prikaz "Trenutno kod" na "Vas" sve dok korisnik manuelno ne klikne refresh.
+  const refreshEvidenceRef = useRef(null);
 
   // Dobavljamo osnovne podatke o slučaju
   useEffect(() => {
@@ -355,6 +359,9 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
           caseId={caseId} 
           auth={auth} 
           caseStatus={slucaj.status}
+          onRefresh={(refreshFn) => {
+            refreshEvidenceRef.current = refreshFn;
+          }}
           onPrimopredajaCreated={() => {
             if (refreshPendingHandoversRef.current) {
               refreshPendingHandoversRef.current();
@@ -378,6 +385,16 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
             auth={auth} 
             onRefresh={(refreshFn) => {
               refreshHandoverApprovalRef.current = refreshFn;
+            }}
+            onPrimopredajaProcessed={() => {
+              // Issue #19: nakon Potvrđeno/Odbijeno trenutni nosilac dokaza se mijenja
+              // u bazi, pa moramo osvježiti i panel "Dokazi" i poslana primopredaja-listu.
+              if (refreshEvidenceRef.current) {
+                refreshEvidenceRef.current();
+              }
+              if (refreshPendingHandoversRef.current) {
+                refreshPendingHandoversRef.current();
+              }
             }}
           />
         )}
