@@ -117,6 +117,18 @@ const evidenceApi = {
   updateStatus: async (dokazId, status) => api.patch(`/dokazi/${dokazId}/status`, { status }),
 };
 
+// --- API za Forenzičke Izvještaje ---
+const forensicApi = {
+  create: async (data) => 
+    api.post('/forenzicki-izvjestaji', data),
+
+  update: async (id, data) => 
+    api.put(`/forenzicki-izvjestaji/${id}`, data),
+
+  getByEvidenceId: async (dokazId) => 
+    api.get(`/forenzicki-izvjestaji/dokaz/${dokazId}`),
+};
+
 // --- API za Lanac Nadzora (Chain of Custody) ---
 const chainOfCustodyApi = {
   getForEvidence: async (dokazId) => api.get(`/dokazi/${dokazId}/lanac`),
@@ -178,4 +190,5 @@ export {
   witnessApi,
   validatePassword,
   formatStatusDokaza,
+  forensicApi,
 };

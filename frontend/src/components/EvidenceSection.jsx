@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { evidenceApi, formatStatusDokaza } from '../api.js';
 import ChainOfCustodyModal from './ChainOfCustodyModal.jsx';
+import ForensicReport from './ForensicReport.jsx';
 
 // --- Pomoćne (UI) Komponente ---
 function InputPolje({ type, name, placeholder, value, onChange, required = true }) {
@@ -473,6 +474,11 @@ export default function EvidenceSection({ caseId, auth, caseStatus, onPrimopreda
                             <div className="text-sm text-gray-400">
                               {dokaz.lokacija_pronalaska} • {dokaz.tip_dokaza}
                             </div>
+                            <ForensicReport 
+                                dokazId={dokaz.dokaz_id} 
+                                auth={auth} 
+                                isReadOnly={isReadOnly} 
+                              />
                             <div className="text-xs text-gray-500 mt-1">
                               Prikupio: {dokaz.prikupio_ime} • {new Date(dokaz.datum_prikupa).toLocaleDateString()}
                             </div>
