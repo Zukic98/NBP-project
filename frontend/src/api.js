@@ -164,6 +164,34 @@ const suspectApi = {
   create: async (caseId, formData) => api.post(`/slucajevi/${caseId}/osumnjiceni`, formData),
 };
 
+// --- API za Krivična Djela (Criminal Offenses) ---
+const krivicnoDjeloApi = {
+  getAll: async () => api.get('/krivicna-djela'),
+  getById: async (id) => api.get(`/krivicna-djela/${id}`),
+  create: async (data) => api.post('/krivicna-djela', data),
+  update: async (id, data) => api.put(`/krivicna-djela/${id}`, data),
+  delete: async (id) => api.delete(`/krivicna-djela/${id}`),
+};
+
+// --- API za Krivična djela na slučaju ---
+const slucajKrivicnoDjeloApi = {
+  // Dohvati sva krivična djela za slučaj
+  getBySlucajId: async (slucajId) => api.get(`/slucajevi/${slucajId}/krivicna-djela`),
+  
+  // Dodaj jedno krivično djelo na slučaj
+  dodajDjelo: async (slucajId, djeloId) => 
+    api.post(`/slucajevi/${slucajId}/krivicna-djela`, { djeloId }),
+  
+  // Dodaj više krivičnih djela na slučaj odjednom
+  dodajViseDjela: async (slucajId, djeloIds) => 
+    api.post(`/slucajevi/${slucajId}/krivicna-djela/batch`, { djeloIds }),
+  
+  // Ukloni krivično djelo sa slučaja
+  ukloniDjelo: async (slucajId, vezaId) => 
+    api.delete(`/slucajevi/${slucajId}/krivicna-djela/${vezaId}`),
+};
+
+
 // ===============================================
 // == POMOĆNE FUNKCIJE ==
 // ===============================================
@@ -195,6 +223,8 @@ export {
   teamApi,
   suspectApi,
   witnessApi,
+  krivicnoDjeloApi,
+  slucajKrivicnoDjeloApi,
   validatePassword,
   formatStatusDokaza,
   forensicApi,

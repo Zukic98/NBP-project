@@ -12,6 +12,7 @@ import WitnessSection from './WitnessSection.jsx';
 import SuspectSection from './SuspectSection.jsx';
 import HandoverApproval from './HandoverApproval.jsx';
 import MyPendingHandovers from './MyPendingHandovers.jsx';
+import CriminalOffensesSection from './CriminalOffensesSection.jsx';
 
 
 // Glavna komponenta
@@ -424,6 +425,13 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
       <div>
         {auth.user.uloga !== 'Forenzičar' && (
           <SuspectSection caseId={caseId} auth={auth} caseStatus={slucaj.status} />
+        )}
+      </div>
+
+      {/* Panel za krivična djela */}
+      <div>
+        {auth.user.uloga !== 'Forenzičar' && (
+          <CriminalOffensesSection caseId={caseId} auth={auth} caseStatus={slucaj.status} />
         )}
       </div>
     </div>

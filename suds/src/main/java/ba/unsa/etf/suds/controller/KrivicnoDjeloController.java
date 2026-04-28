@@ -37,4 +37,36 @@ public class KrivicnoDjeloController {
     public ResponseEntity<KrivicnoDjelo> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
+
+
+    @PostMapping
+    @Operation(summary = "Kreiraj novo krivično djelo")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Krivično djelo kreirano"),
+            @ApiResponse(responseCode = "400", description = "Nevalidni podaci")
+    })
+    public ResponseEntity<KrivicnoDjelo> create(@RequestBody KrivicnoDjelo djelo) {
+        return ResponseEntity.status(201).body(service.create(djelo));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Ažuriraj postojeće krivično djelo")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Krivično djelo ažurirano"),
+            @ApiResponse(responseCode = "404", description = "Krivično djelo nije pronađeno")
+    })
+    public ResponseEntity<KrivicnoDjelo> update(@PathVariable Long id, @RequestBody KrivicnoDjelo djelo) {
+        return ResponseEntity.ok(service.update(id, djelo));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Obriši krivično djelo")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Krivično djelo obrisano"),
+            @ApiResponse(responseCode = "404", description = "Krivično djelo nije pronađeno")
+    })
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

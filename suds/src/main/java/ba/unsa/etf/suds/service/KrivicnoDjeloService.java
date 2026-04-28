@@ -21,4 +21,47 @@ public class KrivicnoDjeloService {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Krivično djelo nije pronađeno!"));
     }
+
+
+    public KrivicnoDjelo create(KrivicnoDjelo djelo) {
+        // Validacije
+        if (djelo.getNaziv() == null || djelo.getNaziv().trim().isEmpty()) {
+            throw new IllegalArgumentException("Naziv krivičnog djela je obavezan.");
+        }
+        if (djelo.getKazneniZakonClan() == null || djelo.getKazneniZakonClan().trim().isEmpty()) {
+            throw new IllegalArgumentException("Član kaznenog zakona je obavezan.");
+        }
+
+        if (repository.postojiDuplikat(djelo.getNaziv(), djelo.getKazneniZakonClan())) {
+        throw new IllegalArgumentException("Krivično djelo '" + djelo.getNaziv() + "' sa članom '" + djelo.getKazneniZakonClan() + "' već postoji u bazi!");
+    }
+        
+        return repository.save(djelo);
+    }
+
+    public KrivicnoDjelo update(Long id, KrivicnoDjelo djelo) {
+        // Provjeri da li postoji
+        repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Krivično djelo nije pronađeno!"));
+        
+        djelo.setId(id);
+        
+        // Validacije
+        if (djelo.getNaziv() == null || djelo.getNaziv().trim().isEmpty()) {
+            throw new IllegalArgumentException("Naziv krivičnog djela je obavezan.");
+        }
+        if (djelo.getKazneniZakonClan() == null || djelo.getKazneniZakonClan().trim().isEmpty()) {
+            throw new IllegalArgumentException("Član kaznenog zakona je obavezan.");
+        }
+        
+        return repository.update(djelo);
+    }
+
+    public void delete(Long id) {
+        // Provjeri da li postoji
+        repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Krivično djelo nije pronađeno!"));
+        
+        repository.deleteById(id);
+    }
 }
