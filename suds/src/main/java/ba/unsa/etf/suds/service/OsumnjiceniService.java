@@ -2,6 +2,7 @@ package ba.unsa.etf.suds.service;
 
 import ba.unsa.etf.suds.config.DatabaseManager;
 import ba.unsa.etf.suds.dto.DodajOsumnjicenogRequest;
+import ba.unsa.etf.suds.dto.OsumnjiceniDTO;
 import ba.unsa.etf.suds.model.Adresa;
 import ba.unsa.etf.suds.model.Osumnjiceni;
 import ba.unsa.etf.suds.repository.AdresaRepository;
@@ -29,6 +30,10 @@ public class OsumnjiceniService {
     public List<Osumnjiceni> getAllOsumnjiceni() {
         return osumnjiceniRepository.findAll();
     }
+
+    public List<OsumnjiceniDTO> getOsumnjiceniBySlucajId(Long slucajId) {
+    return osumnjiceniRepository.findBySlucajId(slucajId);
+}
 
     public Osumnjiceni dodajOsumnjicenog(Long slucajId, DodajOsumnjicenogRequest request) {
         Connection conn = null;

@@ -2,7 +2,6 @@ package ba.unsa.etf.suds.controller;
 
 import ba.unsa.etf.suds.dto.*;
 import ba.unsa.etf.suds.model.Osumnjiceni;
-import ba.unsa.etf.suds.model.Slucaj;
 import ba.unsa.etf.suds.model.Svjedok;
 import ba.unsa.etf.suds.security.JwtUtil;
 import ba.unsa.etf.suds.service.OsumnjiceniService;
@@ -190,7 +189,7 @@ public class SlucajController {
         }
     }
 
-    @PostMapping("/{slucajId}/osumnjiceni")
+    /*@PostMapping("/{slucajId}/osumnjiceni")
     @Operation(summary = "Dodaj osumnjičenog na slučaj")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Osumnjičeni dodan"),
@@ -205,5 +204,5 @@ public class SlucajController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-    }
+    }*/
 }

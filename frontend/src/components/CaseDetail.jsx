@@ -9,6 +9,7 @@ import { LoaderPoruka, PorukaGreske, Sekcija } from './AdminPanel.jsx';
 import EvidenceSection from './EvidenceSection.jsx';
 import TeamSection from './TeamSection.jsx';
 import WitnessSection from './WitnessSection.jsx';
+import SuspectSection from './SuspectSection.jsx';
 import HandoverApproval from './HandoverApproval.jsx';
 import MyPendingHandovers from './MyPendingHandovers.jsx';
 
@@ -417,6 +418,12 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
         {/* NOVO: Prikazujemo WitnessSection SAMO ako NIJE Forenzičar */}
         {auth.user.uloga !== 'Forenzičar' && (
           <WitnessSection caseId={caseId} auth={auth} caseStatus={slucaj.status} />
+        )}
+      </div>
+
+      <div>
+        {auth.user.uloga !== 'Forenzičar' && (
+          <SuspectSection caseId={caseId} auth={auth} caseStatus={slucaj.status} />
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 package ba.unsa.etf.suds.repository;
 
 import ba.unsa.etf.suds.config.DatabaseManager;
+import ba.unsa.etf.suds.dto.OsumnjiceniDTO;
 import ba.unsa.etf.suds.model.Osumnjiceni;
 import org.springframework.stereotype.Repository;
 
@@ -126,4 +127,33 @@ public class OsumnjiceniRepository {
                 rs.getDate("DATUM_RODJENJA")
         );
     }
+
+    public List<OsumnjiceniDTO> findBySlucajId(Long slucajId) {
+    List<OsumnjiceniDTO> lista = new ArrayList<>();
+    String sql = "SELECT o.OSUMNJICENI_ID, o.IME_PREZIME, o.JMBG, o.DATUM_RODJENJA, " +
+                 "(a.ULICA_I_BROJ || ', ' || a.GRAD) AS ADRESA " +
+                 "FROM OSUMNJICENI o " +
+                 "JOIN SLUCAJ_OSUMNJICENI so ON o.OSUMNJICENI_ID = so.OSUMNJICENI_ID " +
+                 "LEFT JOIN ADRESE a ON o.ADRESA_ID = a.ADRESA_ID " +
+                 "WHERE so.SLUCAJ_ID = ?";
+
+    try (Connection conn = dbManager.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setLong(1, slucajId);
+        try (ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new OsumnjiceniDTO(
+                        rs.getLong("OSUMNJICENI_ID"),
+                        rs.getString("IME_PREZIME"),
+                        rs.getString("JMBG"),
+                        rs.getString("ADRESA"),
+                        rs.getDate("DATUM_RODJENJA")
+                ));
+            }
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Error while fetching suspects for case: " + slucajId, e);
+    }
+    return lista;
+}
 }

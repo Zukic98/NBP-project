@@ -158,6 +158,12 @@ const witnessApi = {
   create: async (caseId, formData) => api.post(`/slucajevi/${caseId}/svjedoci`, formData),
 };
 
+// --- API za Osumnjičene (Suspects) ---
+const suspectApi = {
+  getByCaseId: async (caseId) => api.get(`/slucajevi/${caseId}/osumnjiceni`),
+  create: async (caseId, formData) => api.post(`/slucajevi/${caseId}/osumnjiceni`, formData),
+};
+
 // ===============================================
 // == POMOĆNE FUNKCIJE ==
 // ===============================================
@@ -187,6 +193,7 @@ export {
   evidenceApi,
   chainOfCustodyApi,
   teamApi,
+  suspectApi,
   witnessApi,
   validatePassword,
   formatStatusDokaza,
