@@ -24,18 +24,33 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/stanice/register").permitAll()
-                .requestMatchers("/api/adrese").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .requestMatchers("/error").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // Javni endpointi
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/stanice/register").permitAll()
+                        .requestMatchers("/api/adrese").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/error").permitAll()
+
+                        // Fotografije dokaza - svi autentifikovani mogu vidjeti
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/dokazi/*/fotografije").authenticated()
+                        // Fotografije dokaza - samo određene uloge mogu dodavati
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/dokazi/*/fotografije").authenticated()
+
+                        // Fotografije osumnjičenih - svi autentifikovani mogu vidjeti
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/osumnjiceni/*/fotografije").authenticated()
+                        // Fotografije osumnjičenih - dodavanje, ažuriranje, brisanje
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/osumnjiceni/*/fotografije").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/osumnjiceni/*/fotografije/*").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/osumnjiceni/*/fotografije/*").authenticated()
+
+                        // Sve ostalo zahtijeva autentifikaciju
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -60,6 +75,8 @@ public class SecurityConfig {
 
     @Bean
     public org.springframework.security.core.userdetails.UserDetailsService userDetailsService() {
-        return username -> { throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Use JWT"); };
+        return username -> {
+            throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Use JWT");
+        };
     }
 }
