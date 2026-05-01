@@ -12,8 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -205,4 +204,34 @@ public class SlucajController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }*/
+
+    @GetMapping("/{id}/generate-report")
+    @Operation(summary = "Generiši i preuzmi PDF izvještaj za slučaj")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "PDF izvještaj generisan"),
+            @ApiResponse(responseCode = "404", description = "Slučaj nije pronađen"),
+            @ApiResponse(responseCode = "500", description = "Greška pri generisanju PDF-a")
+    })
+    public ResponseEntity<byte[]> generatePdfReport(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            String token = request.getHeader("Authorization").substring(7);
+            String userIdStr = jwtUtil.extractUserId(token);
+            Long userId = Long.parseLong(userIdStr);
+
+            byte[] pdfBytes = slucajService.generatePdfReport(id, userId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename("Izvjestaj_Slucaj_" + id + ".pdf")
+                    .build());
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

@@ -79,7 +79,13 @@ const caseApi = {
   getById: async (caseId) => api.get(`/slucajevi/${caseId}`),
   create: async (brojSlucaja, opis) => api.post('/slucajevi', { brojSlucaja, opis }),
   updateStatus: async (caseId, newStatus) => api.patch(`/slucajevi/${caseId}/status`, { status: newStatus }),
-  getReport: async (caseId) => api.get(`/slucajevi/${caseId}/izvjestaj`),
+
+  // Generisanje PDF izvještaja - vraća blob (PDF fajl)
+  generateReport: async (caseId) => {
+    return api.get(`/slucajevi/${caseId}/generate-report`, {
+      responseType: 'blob'
+    });
+  },
 };
 
 // --- API za Uposlenike (Employees) ---
@@ -114,11 +120,9 @@ const evidenceApi = {
   updateStatus: async (dokazId, status) => api.patch(`/dokazi/${dokazId}/status`, { status }),
 
   // --- METODE ZA FOTOGRAFIJE DOKAZA ---
-  // Dobavljanje fotografija za dokaz
   getPhotos: (dokazId) =>
       api.get(`/dokazi/${dokazId}/fotografije`),
 
-  // Upload fotografije za dokaz
   uploadPhoto: (dokazId, formData) =>
       api.post(`/dokazi/${dokazId}/fotografije`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -172,11 +176,9 @@ const suspectApi = {
   create: async (caseId, formData) => api.post(`/slucajevi/${caseId}/osumnjiceni`, formData),
 
   // --- METODE ZA FOTOGRAFIJE OSUMNJIČENIH ---
-  // Dobavljanje fotografija za osumnjičenog
   getPhotos: (osumnjiceniId) =>
       api.get(`/osumnjiceni/${osumnjiceniId}/fotografije`),
 
-  // Upload fotografije za osumnjičenog
   uploadPhoto: (osumnjiceniId, formData) =>
       api.post(`/osumnjiceni/${osumnjiceniId}/fotografije`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }

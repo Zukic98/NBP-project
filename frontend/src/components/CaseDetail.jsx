@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { caseApi } from '../api.js';
 import { Download } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
 import { LoaderPoruka, PorukaGreske, Sekcija } from './AdminPanel.jsx';
 
 // Uvozimo nove, odvojene komponente
@@ -69,229 +68,36 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
     }
   };
 
-  const handleGenerateReport = async () => {
-    setIsGeneratingReport(true);
-    try {
-      const response = await caseApi.getReport(caseId);
-      const izvjestaj = response.data;
+    const handleGenerateReport = async () => {
+        setIsGeneratingReport(true);
+        try {
+            const response = await caseApi.generateReport(caseId);
 
-      // Kreiraj HTML sadržaj za PDF
-      let htmlContent = `
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            color: #333;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: white;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 15px;
-          }
-          .header h1 {
-            color: #1f2937;
-            font-size: 24px;
-            margin: 0;
-          }
-          .header h2 {
-            color: #374151;
-            font-size: 16px;
-            margin: 10px 0 0 0;
-          }
-          .section {
-            margin: 20px 0;
-            page-break-inside: avoid;
-          }
-          .section h3 {
-            color: #334155;
-            font-size: 14px;
-            font-weight: bold;
-            margin: 15px 0 10px 0;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #ddd;
-          }
-          .section-content {
-            margin-left: 10px;
-          }
-          .item {
-            margin: 8px 0;
-            font-size: 11px;
-          }
-          .item-label {
-            font-weight: bold;
-            color: #555;
-          }
-          .item-value {
-            color: #374151;
-          }
-          .sub-item {
-            margin-left: 15px;
-            margin-top: 4px;
-            font-size: 11px;
-          }
-          .footer {
-            margin-top: 40px;
-            padding: 20px 0 15px 0;
-            border-top: 1px solid #ddd;
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            page-break-inside: avoid;
-          }
-          .footer p {
-            margin: 5px 0;
-          }
-          .no-data {
-            color: #999;
-            font-style: italic;
-            font-size: 11px;
-          }
-        </style>
+            // Kreiraj download link za PDF
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
 
-        <div class="header">
-          <h1>IZVJEŠTAJ O SLUČAJU</h1>
-          <h2>Broj slučaja: ${izvjestaj.slucaj.broj_slucaja}</h2>
-        </div>
+            // Izvuci ime fajla iz headera ili generiši default
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `Izvjestaj_Slucaj_${slucaj.broj_slucaja}_${new Date().getTime()}.pdf`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (filenameMatch) filename = filenameMatch[1];
+            }
 
-        <div class="section">
-          <h3>OSNOVNI PODACI</h3>
-          <div class="section-content">
-            <div class="item">
-              <span class="item-label">Broj slučaja:</span>
-              <span class="item-value">${izvjestaj.slucaj.broj_slucaja}</span>
-            </div>
-            <div class="item">
-              <span class="item-label">Status:</span>
-              <span class="item-value">${izvjestaj.slucaj.status}</span>
-            </div>
-            <div class="item">
-              <span class="item-label">Opis:</span>
-              <span class="item-value">${izvjestaj.slucaj.opis}</span>
-            </div>
-            <div class="item">
-              <span class="item-label">Voditelj slučaja:</span>
-              <span class="item-value">${izvjestaj.slucaj.voditelj_slucaja || 'Nije dodijeljen'}</span>
-            </div>
-            <div class="item">
-              <span class="item-label">Datum kreiranja:</span>
-              <span class="item-value">${new Date(izvjestaj.slucaj.datum_kreiranja).toLocaleDateString('bs-BA')}</span>
-            </div>
-          </div>
-        </div>
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
 
-        <div class="section">
-          <h3>DOKAZI</h3>
-          <div class="section-content">
-            ${izvjestaj.dokazi && izvjestaj.dokazi.length > 0
-          ? izvjestaj.dokazi.map((dokaz, index) => `
-                <div style="margin-bottom: 12px;">
-                  <div class="item"><strong>${index + 1}. ${dokaz.opis}</strong></div>
-                  <div class="sub-item"><span class="item-label">Tip:</span> <span class="item-value">${dokaz.tip_dokaza}</span></div>
-                  <div class="sub-item"><span class="item-label">Lokacija:</span> <span class="item-value">${dokaz.lokacija_pronalaska}</span></div>
-                  <div class="sub-item"><span class="item-label">Prikupio:</span> <span class="item-value">${dokaz.prikupio_ime || 'N/A'}</span></div>
-                  <div class="sub-item"><span class="item-label">Datum:</span> <span class="item-value">${new Date(dokaz.datum_prikupa).toLocaleDateString('bs-BA')}</span></div>
-                </div>
-              `).join('')
-          : '<div class="no-data">Nema evidentiranih dokaza.</div>'
+        } catch (err) {
+            alert('Greška pri generisanju izvještaja: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setIsGeneratingReport(false);
         }
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>LANAC NADZORA</h3>
-          <div class="section-content">
-            ${izvjestaj.lanacNadzora && izvjestaj.lanacNadzora.length > 0
-          ? izvjestaj.lanacNadzora.map((unos, index) => `
-                <div style="margin-bottom: 12px;">
-                  <div class="item"><strong>${index + 1}. ${unos.dokaz_opis || 'Primopredaja'}</strong></div>
-                  <div class="sub-item"><span class="item-label">Predao:</span> <span class="item-value">${unos.predao_ime || 'N/A'}</span></div>
-                  <div class="sub-item"><span class="item-label">Preuzeo:</span> <span class="item-value">${unos.preuzeo_ime || 'N/A'}</span></div>
-                  <div class="sub-item"><span class="item-label">Datum:</span> <span class="item-value">${new Date(unos.datum_primopredaje).toLocaleDateString('bs-BA')}</span></div>
-                  <div class="sub-item"><span class="item-label">Status potvrde:</span> <span class="item-value">${unos.potvrda_status}</span></div>
-                </div>
-              `).join('')
-          : '<div class="no-data">Nema evidentiranog lanca nadzora.</div>'
-        }
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>TIM NA SLUČAJU</h3>
-          <div class="section-content">
-            ${izvjestaj.tim && izvjestaj.tim.length > 0
-          ? izvjestaj.tim.map((clan, index) => `
-                <div style="margin-bottom: 10px;">
-                  <div class="item"><strong>${index + 1}. ${clan.ime_prezime}</strong></div>
-                  ${clan.naziv_uloge ? `<div class="sub-item"><span class="item-label">Uloga:</span> <span class="item-value">${clan.naziv_uloge}</span></div>` : ''}
-                  <div class="sub-item"><span class="item-label">Uloga na slučaju:</span> <span class="item-value">${clan.uloga_na_slucaju}</span></div>
-                  ${clan.email ? `<div class="sub-item"><span class="item-label">Email:</span> <span class="item-value">${clan.email}</span></div>` : ''}
-                </div>
-              `).join('')
-          : '<div class="no-data">Nema članova tima na slučaju.</div>'
-        }
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>SVJEDOCI</h3>
-          <div class="section-content">
-            ${izvjestaj.svjedoci && izvjestaj.svjedoci.length > 0
-          ? izvjestaj.svjedoci.map((svjedok, index) => `
-                <div style="margin-bottom: 12px;">
-                  <div class="item"><strong>${index + 1}. ${svjedok.ime_prezime}</strong></div>
-                  ${svjedok.jmbg ? `<div class="sub-item"><span class="item-label">JMBG:</span> <span class="item-value">${svjedok.jmbg}</span></div>` : ''}
-                  ${svjedok.adresa ? `<div class="sub-item"><span class="item-label">Adresa:</span> <span class="item-value">${svjedok.adresa}</span></div>` : ''}
-                  ${svjedok.kontakt_telefon ? `<div class="sub-item"><span class="item-label">Telefon:</span> <span class="item-value">${svjedok.kontakt_telefon}</span></div>` : ''}
-                  ${svjedok.biljeska ? `<div class="sub-item"><span class="item-label">Bilješka:</span> <span class="item-value">${svjedok.biljeska}</span></div>` : ''}
-                </div>
-              `).join('')
-          : '<div class="no-data">Nema evidentiranih svjedoka.</div>'
-        }
-          </div>
-        </div>
-
-        <div class="footer">
-          <p>Izvještaj generisan: ${new Date().toLocaleString('bs-BA')}</p>
-          <p>Generisao: ${auth?.user?.ime_prezime || 'Nepoznat korisnik'} (${auth?.user?.uloga || 'N/A'})</p>
-        </div>
-      `;
-
-      // Konfiguriraj html2pdf
-      // Napomena: innerHTML se koristi jer html2pdf zahtijeva DOM element sa HTML sadržajem
-      // HTML se generiše na frontendu iz podataka iz baze, tako da je relativno siguran
-      // Za dodatnu sigurnost, sanitizujemo potencijalno opasne elemente
-      const element = document.createElement('div');
-      // Sanitizuj HTML prije postavljanja - ukloni potencijalno opasne elemente
-      const safeHtmlContent = htmlContent
-        .replace(/javascript:/gi, '') // Ukloni javascript: protokole
-        .replace(/on\w+\s*=/gi, '') // Ukloni event handlere (onclick, onload, itd.)
-        .replace(/<script[\s\S]*?<\/script>/gi, '') // Ukloni script tagove
-        .replace(/<iframe[\s\S]*?<\/iframe>/gi, ''); // Ukloni iframe tagove
-      element.innerHTML = safeHtmlContent;
-
-      const options = {
-        margin: [10, 10, 10, 10],
-        filename: `Izvjestaj_Slucaj_${izvjestaj.slucaj.broj_slucaja}_${new Date().getTime()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: 'avoid-all' },
-      };
-
-      html2pdf().set(options).from(element).save();
-
-    } catch (err) {
-      alert('Greška pri generisanju izvještaja: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
+    };
 
   // Prikaz stanja
   if (isLoading) return <LoaderPoruka message="Učitavam detalje slučaja..." />;
