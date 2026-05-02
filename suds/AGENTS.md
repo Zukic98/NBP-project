@@ -1,69 +1,87 @@
-# PROJECT KNOWLEDGE BASE
+# BACKEND KNOWLEDGE BASE (suds/)
 
-**Generated:** 2026-04-05 **Commit:** f600f29 **Branch:** main
+**Generated:** 2026-05-02 **Commit:** b7a8aea **Stack:** Java 21 + Spring Boot
+4.0.4
 
 ## OVERVIEW
 
-SUDS (Sistem za upravljanje dokazima i slucajevima) — law enforcement evidence &
-case management REST API. Java 21 + Spring Boot 4.0.4 + **pure JDBC** against
-Oracle DB. No ORM.
+REST API for SUDS. **Pure JDBC** against Oracle 19c (no Hibernate, no Spring
+Data JPA, no `@Entity`). 4-layer onion:
+`controller → service → repository → DatabaseManager`. JWT (HS256) auth via
+Spring Security + custom `JwtFilter`.
 
 ## STRUCTURE
 
 ```
 suds/
 ├── src/main/java/ba/unsa/etf/suds/
-│   ├── config/          # DatabaseManager (JDBC connection factory)
-│   ├── controller/      # 10 REST controllers (@RestController)
-│   ├── dto/             # 3 DTOs for complex join responses
-│   ├── model/           # 14 Lombok POJOs mapping Oracle tables
-│   ├── repository/      # 10 repositories (raw SQL via PreparedStatement)
-│   └── service/         # 10 services (thin business logic)
+│   ├── config/          # 3: DatabaseManager (JDBC factory), SecurityConfig, OpenApiConfig
+│   ├── controller/      # 17 @RestController classes
+│   ├── dto/             # 33 request/response DTOs (incl. 4 photo DTOs, 5 chain-of-custody DTOs)
+│   ├── model/           # 18 Lombok POJOs mapping Oracle tables (incl. 4 NBP_* auth tables)
+│   ├── repository/      # 17 raw-SQL repos via PreparedStatement
+│   ├── service/         # 16 services (thin business logic + PdfGeneratorService)
+│   ├── security/        # 2: JwtFilter (OncePerRequestFilter), JwtUtil
+│   └── SudsApplication.java
 ├── src/main/resources/
-│   └── application.yml  # DB creds + server port
-└── src/test/java/.../service/  # 3 unit tests (Mockito)
+│   ├── application.yml  # DB creds + JWT secret (CHECKED-IN — replace before push)
+│   └── fonts/           # iText 7 PDF generation fonts
+└── src/test/java/.../
+    ├── service/         # 10 Mockito unit tests
+    ├── repository/      # 3 repo tests (DB-touching)
+    └── controller/      # 3 incl. RBAC test (SlucajControllerRbacTest)
 ```
 
 ## WHERE TO LOOK
 
-| Task                    | Location                                                     | Notes                                                           |
-| ----------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
-| Add new entity          | `model/` → `repository/` → `service/` → `controller/`        | Follow Slucaj\* as reference pattern                            |
-| Add complex query       | `repository/`                                                | See `SlucajRepository.findDetaljiByBroj` for JOIN + DTO mapping |
-| Add DTO for joined data | `dto/` + `repository/`                                       | DTO is plain Lombok, repo does the SQL join                     |
-| DB connection issues    | `config/DatabaseManager.java`                                | Single connection factory, caller must close                    |
-| Configure DB            | `src/main/resources/application.yml`                         | `db.url`, `db.username`, `db.password`                          |
-| Add tests               | `src/test/java/.../service/`                                 | JUnit 5 + Mockito, mock repository layer                        |
-| Auth/user models        | `model/NbpUser.java`, `NbpRole.java`, `CrnaListaTokena.java` | Token blacklist model exists, no auth controller yet            |
+| Task                             | Location                                                      | Notes                                                             |
+| -------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Add new entity                   | `model/` → `repository/` → `service/` → `controller/`         | Follow `Slucaj*` chain as reference                               |
+| Add complex JOIN query           | `repository/`                                                 | See `SlucajRepository.findDetaljiByBroj` for JOIN→DTO map         |
+| Add DTO for joined data          | `dto/` + `repository/` mapper                                 | Plain Lombok `@Data`; SQL does the join                           |
+| DB connection                    | `config/DatabaseManager.java`                                 | New connection per call; **caller closes via try-with-resources** |
+| JWT auth wiring                  | `security/JwtFilter.java`, `security/JwtUtil.java`            | Reads `Authorization: Bearer …`; checks `CRNA_LISTA_TOKENA`       |
+| Add public (no-auth) endpoint    | `config/SecurityConfig.java`                                  | Whitelist path; `/auth/login` and `/stanice/register` are public  |
+| Login / logout / password change | `controller/AuthController.java` + `service/AuthService.java` | Logout writes token to blacklist                                  |
+| Configure DB / JWT secret        | `src/main/resources/application.yml`                          | `db.*`, `jwt.secret`, `jwt.expiration-ms`                         |
+| PDF report (case)                | `service/PdfGeneratorService.java`                            | iText 7; fonts under `resources/fonts/`                           |
+| Add tests                        | `src/test/java/.../{service,repository,controller}/`          | JUnit 5 + Mockito; mock repository in service tests               |
 
 ## CONVENTIONS
 
-- **Pure JDBC only.** No Hibernate, no Spring Data JPA, no `@Entity`. Models are
-  plain POJOs.
-- **Bosnian/Croatian naming** for domain classes, methods, test names, Javadoc.
-  DB column names are uppercase Bosnian.
-- **Constructor injection** everywhere (no `@Autowired` annotation).
-- **Lombok** `@Data @NoArgsConstructor @AllArgsConstructor` on all models.
-  `@Data` only on DTOs.
-- **Repository pattern**: each repo injects `DatabaseManager`, gets connection
-  per query via try-with-resources, wraps SQLExceptions in `RuntimeException`.
-- **Controller pattern**: inject service, return `ResponseEntity<T>`. API
-  prefix: `/api/{plural-bosnian-noun}`.
-- **Error messages** in English for RuntimeExceptions, Bosnian in Javadoc and
-  user-facing strings.
-- **No field injection**, no `@Autowired`.
+- **Pure JDBC.** No ORM. Models are plain POJOs, no `@Entity`, no `@Column`.
+- **Constructor injection** everywhere. **No `@Autowired`** annotation. Lombok's
+  `@RequiredArgsConstructor` is acceptable; field injection is not.
+- **Lombok** `@Data @NoArgsConstructor @AllArgsConstructor` on `model/` POJOs.
+  `@Data` (or just getters) on `dto/` records.
+- **Repository pattern**: inject `DatabaseManager`; per-call connection via
+  `try (Connection conn = dbManager.getConnection(); PreparedStatement …)`; wrap
+  `SQLException` in `RuntimeException` with English message.
+- **Controller pattern**: inject service, return `ResponseEntity<T>`. URL prefix
+  `/api/{plural-bosnian-noun}` (e.g. `/api/slucajevi`, `/api/dokazi`).
+- **Bosnian/Croatian** for class/method/variable names, Javadoc, user-facing
+  messages. **English** only for `RuntimeException` messages and framework
+  keywords.
+- **Javadoc in Bosnian** with `<p>`/`<ol>` HTML tags — see
+  `security/JwtFilter.java` for the canonical style.
+- **JWT claims**: `userId` (long), `role_name` (string), `stanica_id` (long).
+  Filter sets `ROLE_<role_name>` authority.
 
-## ANTI-PATTERNS (THIS PROJECT)
+## ANTI-PATTERNS (REPEATING SINCE THEY MATTER HERE)
 
-- **NEVER use ORM** — project requirement is pure JDBC.
-- **NEVER commit DB credentials** — `application.yml` has placeholder values.
-- **ALWAYS close connections** — `DatabaseManager.getConnection()` returns raw
-  connection; caller owns lifecycle. Use try-with-resources.
-- **NEVER use `@Autowired`** — all injection is via constructor.
+- **NEVER use ORM** — course requirement, not preference.
+- **NEVER use `@Autowired`** — constructor injection only.
+- **NEVER leak `Connection`** — every `DatabaseManager.getConnection()` MUST be
+  in a try-with-resources. There is **no pool** — leaks exhaust the Oracle
+  account fast.
+- **NEVER mutate `LANAC_NADZORA` rows** — chain-of-custody is append-only.
+  Updates/deletes are forbidden by domain rules. Add a new row with reversed
+  roles instead.
+- **NEVER hardcode role strings** outside the canonical four: `SEF_STANICE`,
+  `INSPEKTOR`, `POLICAJAC`, `FORENZIČAR`. Mismatched spelling silently fails
+  RBAC.
 
-## REPOSITORY LAYER TEMPLATE
-
-Every repository follows this exact pattern:
+## REPOSITORY TEMPLATE
 
 ```java
 @Repository
@@ -81,41 +99,49 @@ public class XxxRepository {
             // stmt.setXxx(1, entity.getField());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Error while ...", e);
+            throw new RuntimeException("Error while saving Xxx", e);
         }
     }
-
-    // findAll, findById (Optional<T>), update, delete follow same pattern
-    // mapRowToXxx(ResultSet rs) helper at bottom
+    // findAll, findById (returns Optional<T>), update, delete same shape.
+    // Private mapRowToXxx(ResultSet rs) helper at file bottom.
 }
 ```
 
 ## DB SCHEMA HINTS
 
-- Tables: `SLUCAJEVI`, `OSUMNJICENI`, `KRIVICNA_DJELA`, `DOKAZI`, `STANICE`,
-  `LANAC_NADZORA`, `FORENZICKI_IZVJESTAJI`, `ADRESE`, `SVJEDOCI`,
-  `UPOSLENIK_PROFIL`
-- Junction tables: `SLUCAJ_OSUMNJICENI`, `SLUCAJ_KRIVICNO_DJELO`
-- Auth tables (shared schema `nbp`): `NBP_USER`, `NBP_ROLE`,
-  `CRNA_LISTA_TOKENA`, `NBP_LOG`
-- Column naming: `UPPERCASE_BOSNIAN` (e.g., `DATUM_KREIRANJA`, `IME_PREZIME`,
-  `BROJ_SLUCAJA`)
+- Domain tables: `SLUCAJEVI`, `OSUMNJICENI`, `KRIVICNA_DJELA`, `DOKAZI`,
+  `STANICE`, `LANAC_NADZORA` (append-only), `FORENZICKI_IZVJESTAJI`, `ADRESE`,
+  `SVJEDOCI`, `UPOSLENIK_PROFIL`, `TIM_NA_SLUCAJU`, `DOKAZ_FOTOGRAFIJA`,
+  `OSUMNJICENI_FOTOGRAFIJA`
+- Junction: `SLUCAJ_OSUMNJICENI`, `SLUCAJ_KRIVICNO_DJELO`
+- Auth (separate `nbp` schema): `NBP_USER`, `NBP_ROLE`, `CRNA_LISTA_TOKENA`,
+  `NBP_LOG`
+- Columns: `UPPERCASE_BOSNIAN` (`DATUM_KREIRANJA`, `IME_PREZIME`,
+  `BROJ_SLUCAJA`). Use exact casing in SQL — Oracle is case-sensitive when
+  identifiers are quoted, and the schema does quote them.
+- **No migrations in repo.** DDL lives on the remote Oracle server. Schema
+  changes coordinate via the wiki ER diagram.
 
 ## COMMANDS
 
 ```bash
-mvn clean install          # Build + run tests
-mvn spring-boot:run        # Start on :8080
-mvn test                   # Unit tests only (JUnit 5 + Mockito)
+mvn clean install           # build + run unit tests
+mvn spring-boot:run         # serve :8080, Swagger at /swagger-ui.html
+mvn test                    # unit tests only
 ```
 
 ## NOTES
 
-- Spring Boot **4.0.4** (cutting-edge, not LTS). Surefire uses
-  `-XX:+EnableDynamicAgentLoading` for Mockito.
-- Models have 4 extra auth-related classes (`NbpUser`, `NbpRole`,
-  `CrnaListaTokena`, `NbpLog`) without corresponding controllers/services — auth
-  layer likely planned but not yet implemented.
-- `DatabaseManager.getConnection()` creates a **new connection per call** — no
-  pooling. Acceptable for course project, not production.
-- Test coverage is minimal: 3 service tests out of 10 services.
+- Spring Boot **4.0.4** (not 3.x LTS). Many SO answers don't apply — check
+  official docs first.
+- Surefire plugin uses `-XX:+EnableDynamicAgentLoading` argLine for Mockito on
+  Java 21. Don't strip it.
+- Maven Javadoc plugin is configured (`failOnError=false`, Bosnian title).
+  `mvn javadoc:javadoc` emits to `target/reports/apidocs/` — that subtree is
+  generated, not source.
+- `application.yml` currently contains live course-server creds (`NBPT5/nbpt5`,
+  `ora-02.db.lab.etf.unsa.ba`). **Replace before any public push.**
+- `DatabaseManager` makes a fresh `DriverManager.getConnection` each call —
+  acceptable for the course, never for production.
+- Test coverage: 10 service + 3 repo + 3 controller. `AuthControllerTest` and
+  `SlucajControllerRbacTest` are the RBAC reference.
