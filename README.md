@@ -1,70 +1,162 @@
-# Advanced Databases - JDBC Project
+# SUDS — Sistem za Upravljanje Dokazima i Slučajevima
 
-This repository contains a Java-based backend application developed for the **Advanced Databases** course. The project strictly focuses on direct database interaction using the **pure JDBC API** (without ORM frameworks like Hibernate or Spring Data JPA).
+**Evidence and Case Management System** — a full-stack web application for
+law-enforcement agencies, digitalizing criminal cases, suspects, witnesses and
+the legally-critical **chain of custody** for forensic evidence.
 
-## 🚓 About The Project (SUDS)
+Built for the **Napredne baze podataka** (Advanced Databases) course at ETF
+Sarajevo, the backend talks to Oracle via **pure JDBC** — no Hibernate, no
+Spring Data JPA.
 
-**SUDS (Sistem za upravljanje dokazima i slučajevima / Evidence and Case Management System)** is a comprehensive backend system designed for law enforcement agencies. It digitalizes the tracking of criminal cases, suspects, and the critical chain of custody for forensic evidence.
+> 📚 **Full documentation lives in the
+> [project wiki](https://github.com/Zukic98/NBP-project/wiki).**
 
-### Key Features
-* **Case Management:** Create and track criminal cases, assigning lead investigators.
-* **Suspect Tracking:** Register suspects and link them to specific cases and criminal offenses.
-* **Evidence & Chain of Custody:** Log physical evidence and strictly track its movement (who handed it over, who received it, and when) to maintain legal integrity.
-* **Personnel Management:** View and manage police station staff and forensic experts.
+______________________________________________________________________
 
-## 🛠️ Tech Stack
-* **Language:** Java 21
-* **Framework:** Spring Boot 4.0.4 (Web & REST API only)
-* **Database Access:** Pure JDBC (`java.sql.*`)
-* **Database:** Oracle Database (`ojdbc11`)
-* **Build Tool:** Maven
+## 🚓 About the project
+
+SUDS solves three concrete problems for police stations:
+
+1. **Fragmented case data** — cases, witnesses, suspects and evidence used to
+   live in separate paper binders. SUDS keeps everything related to a case under
+   one record and joins the rest by foreign key.
+2. **Untraceable evidence handovers** — every transfer between officers, lab and
+   depot is recorded as an immutable `LANAC_NADZORA` row with sender, receiver,
+   station, timestamp and confirmation status. See
+   **[Chain of Custody](https://github.com/Zukic98/NBP-project/wiki/09-Chain-of-Custody)**.
+3. **Inconsistent role responsibilities** — four roles (`SEF_STANICE`,
+   `INSPEKTOR`, `POLICAJAC`, `FORENZIČAR`) enforced by Spring Security and the
+   React UI.
+
+## ✨ Key features
+
+- **Case management** — create, assign lead investigator, generate per-case PDF
+  report (iText 7).
+- **Suspect tracking** — register suspects with photos, link to one or more
+  cases.
+- **Evidence & chain of custody** — handovers require explicit confirmation by
+  the receiver.
+- **Forensic workflow** — `FORENZIČAR`-only reports tied to specific evidence.
+- **Personnel management** — `SEF_STANICE` onboards and deactivates employees in
+  their station.
+- **Live API docs** — Swagger UI at `/swagger-ui.html` (SpringDoc OpenAPI 2.1).
+
+## 🛠️ Tech stack
+
+| Layer       | Stack                                                             |
+| ----------- | ----------------------------------------------------------------- |
+| Frontend    | React 19 + Vite 5 + TailwindCSS 3 + axios                         |
+| Backend     | Java 21 + Spring Boot 4.0.4 + Spring Security + JWT (jjwt 0.12.6) |
+| Persistence | Pure JDBC (`java.sql.*`) over Oracle 19c (`ojdbc11`)              |
+| Reporting   | iText 7 (server-side PDF), html2pdf.js (client-side)              |
+| API docs    | SpringDoc OpenAPI 2.1.0                                           |
+| Build tools | Maven, Vite                                                       |
 
 ## 🏛️ Architecture
 
-The project strictly follows a **3-Tier Architecture** to separate concerns:
-1. **Controllers (REST API):** Handle incoming HTTP requests and return JSON responses.
-2. **Services (Business Logic):** Contain all validation and business rules.
-3. **Repositories (Data Access):** The *only* layer that interacts with the Oracle database using raw SQL queries (`PreparedStatement`, `ResultSet`).
-* *Note: Data Transfer Objects (DTOs) are used to format data for the frontend, while Models represent raw database tables.*
+A classic 3-tier backend (`controller` → `service` → `repository`) plus a
+stateless React SPA. Authentication is JWT (HS256) carrying `user_id`,
+`role_name` and `stanica_id` claims.
 
-## 📥 Getting Started
+```text
+nbp-project/
+├── suds/        ← Spring Boot backend (port 8080)
+└── frontend/    ← React + Vite SPA (port 5173 in dev)
+```
 
-To get a local copy up and running, follow these steps:
+For full diagrams, see
+**[Architecture](https://github.com/Zukic98/NBP-project/wiki/03-Architecture)**.
 
-### 1. Prerequisites
-* Java Development Kit (JDK 17 or 21) installed.
-* Maven installed.
-* An active connection to the Oracle Database.
+## 📥 Quick start
 
-### 2. Clone the repository
+### Prerequisites
+
+- JDK 21 (JDK 26 also works)
+- Maven 3.9+
+- Node.js 18+
+- An Oracle DB account (course server: `ora-02.db.lab.etf.unsa.ba:1521/ETFDB`)
+
+### 1. Clone
+
 ```bash
-git clone [https://github.com/Zukic98/NBP-project.git](https://github.com/Zukic98/NBP-project.git)
+git clone https://github.com/Zukic98/NBP-project.git
 cd NBP-project
 ```
 
-### 3. Configure the Database Connection
-Do not commit your real database credentials to GitHub! 
-Create or modify the `src/main/resources/application.yml` file with your Oracle database details:
+### 2. Configure & run the backend
+
+Edit `suds/src/main/resources/application.yml`:
 
 ```yaml
 server:
   port: 8080
 
 db:
-  url: jdbc:oracle:thin:@//YOUR_HOST:PORT/YOUR_SERVICE_NAME
+  url: jdbc:oracle:thin:@//YOUR_HOST:1521/YOUR_SERVICE_NAME
   username: YOUR_USERNAME
   password: YOUR_PASSWORD
 
 jwt:
-  secret: JWT_SECRET
-  expiration-ms: EXPIRATION_MS
+  secret: change-me-to-a-long-random-256-bit-string
+  expiration-ms: 86400000
 ```
 
-### 4. Build and Run
-You can run the application directly from your IDE (e.g., IntelliJ IDEA) by executing the `SudsApplication.java` main class, or via the terminal using Maven:
+Then:
 
 ```bash
+cd suds
 mvn clean install
 mvn spring-boot:run
 ```
-The REST API will be available at `http://localhost:8080`.
+
+API: <http://localhost:8080> Swagger UI: <http://localhost:8080/swagger-ui.html>
+
+### 3. Configure & run the frontend
+
+```bash
+cd frontend
+cp .env.example .env       # rename VITE_API_BASE_URL → VITE_API_URL inside .env
+npm install
+npm run dev
+```
+
+SPA: <http://localhost:5173>
+
+> Detailed step-by-step instructions, including the first-run bootstrap flow,
+> are in the
+> **[Setup Guide](https://github.com/Zukic98/NBP-project/wiki/04-Setup-Guide)**.
+
+## 📖 Documentation
+
+The full project documentation lives in the
+**[GitHub Wiki](https://github.com/Zukic98/NBP-project/wiki)**:
+
+| Section                                                                                                       | Content                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [About the Project](https://github.com/Zukic98/NBP-project/wiki/01-About-The-Project)                         | What SUDS does and why                                                                                                                                                                                                                                                                                                                                               |
+| [Tech Stack](https://github.com/Zukic98/NBP-project/wiki/02-Tech-Stack)                                       | Every dependency, version, purpose                                                                                                                                                                                                                                                                                                                                   |
+| [Architecture](https://github.com/Zukic98/NBP-project/wiki/03-Architecture)                                   | System diagrams (Mermaid), 3-tier, request lifecycle                                                                                                                                                                                                                                                                                                                 |
+| [Setup Guide](https://github.com/Zukic98/NBP-project/wiki/04-Setup-Guide)                                     | Prereqs, step-by-step install                                                                                                                                                                                                                                                                                                                                        |
+| [Configuration](https://github.com/Zukic98/NBP-project/wiki/05-Configuration)                                 | Every config key explained                                                                                                                                                                                                                                                                                                                                           |
+| [Database Schema](https://github.com/Zukic98/NBP-project/wiki/06-Database-Schema)                             | Mermaid ER diagram + every table                                                                                                                                                                                                                                                                                                                                     |
+| [API Reference](https://github.com/Zukic98/NBP-project/wiki/07-API-Reference)                                 | Every endpoint, examples, status codes                                                                                                                                                                                                                                                                                                                               |
+| [Authentication & Authorization](https://github.com/Zukic98/NBP-project/wiki/08-Authentication-Authorization) | JWT claims, login flow, role rules                                                                                                                                                                                                                                                                                                                                   |
+| [Chain of Custody](https://github.com/Zukic98/NBP-project/wiki/09-Chain-of-Custody)                           | The core domain workflow                                                                                                                                                                                                                                                                                                                                             |
+| [Frontend Architecture](https://github.com/Zukic98/NBP-project/wiki/10-Frontend-Architecture)                 | React component tree                                                                                                                                                                                                                                                                                                                                                 |
+| User guides                                                                                                   | Per-role walkthroughs ([Šef stanice](https://github.com/Zukic98/NBP-project/wiki/11-User-Guide-Sef-Stanice), [Inspektor](https://github.com/Zukic98/NBP-project/wiki/12-User-Guide-Inspektor), [Policajac](https://github.com/Zukic98/NBP-project/wiki/13-User-Guide-Policajac), [Forenzičar](https://github.com/Zukic98/NBP-project/wiki/14-User-Guide-Forenzicar)) |
+
+## 🧪 Live API documentation
+
+When the backend is running, SpringDoc serves:
+
+- **Swagger UI:** <http://localhost:8080/swagger-ui.html> — interactive,
+  click-to-call.
+- **OpenAPI JSON:** <http://localhost:8080/v3/api-docs> — machine-readable,
+  ready for Postman / client codegen.
+
+Both are public (no token required) and authenticated operations have an
+*Authorize* button that takes a JWT.
+
+## 📜 License
+
+See [LICENSE](LICENSE).
