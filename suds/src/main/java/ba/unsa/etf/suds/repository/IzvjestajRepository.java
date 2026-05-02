@@ -10,15 +10,36 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za generisanje i čuvanje izvještaja slučajeva.
+ *
+ * <p>Upravlja tabelom IZVJESTAJI_SLUCAJEVA i vrši cross-table čitanja iz tabela
+ * SLUCAJEVI, DOKAZI, DOKAZ_FOTOGRAFIJE, LANAC_NADZORA, TIM_NA_SLUCAJU,
+ * SVJEDOCI, OSUMNJICENI, OSUMNJICENI_FOTOGRAFIJE, KRIVICNA_DJELA i
+ * {@code nbp.NBP_USER} radi agregacije podataka za PDF izvještaj.
+ *
+ * <p>Koristi čisti JDBC bez ORM-a (pravilo predmeta NBP). Svaka metoda
+ * otvara vlastitu konekciju preko {@link DatabaseManager#getConnection()}
+ * i zatvara je kroz try-with-resources. SQLException-i se wrappaju
+ * u RuntimeException sa engleskom porukom.
+ */
 @Repository
 public class IzvjestajRepository {
 
     private final DatabaseManager databaseManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public IzvjestajRepository(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
+    /**
+     * Dohvata osnovne informacije o slučaju za izvještaj (JOIN sa STANICE i {@code nbp.NBP_USER}).
+     *
+     * @param slucajId ID slučaja
+     * @return Optional sa {@link IzvjestajDTO.SlucajInfo} ako slučaj postoji, inače prazan
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public Optional<IzvjestajDTO.SlucajInfo> findSlucajInfo(Long slucajId) {
         String sql = """
             SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA,
@@ -52,6 +73,13 @@ public class IzvjestajRepository {
         return Optional.empty();
     }
 
+    /**
+     * Dohvata sve dokaze za dati slučaj za izvještaj, uključujući fotografije u Base64.
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.DokazInfo} objekata, sortirana po datumu prikupljanja
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.DokazInfo> findDokazi(Long slucajId) {
         String sql = """
             SELECT d.DOKAZ_ID, d.OPIS, d.TIP_DOKAZA, d.LOKACIJA_PRONALASKA, 
@@ -115,6 +143,13 @@ public class IzvjestajRepository {
         return base64Slike;
     }
 
+    /**
+     * Dohvata kompletan lanac nadzora za sve dokaze na slučaju za izvještaj.
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.LanacNadzoraInfo} objekata, sortirana po datumu primopredaje
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.LanacNadzoraInfo> findLanacNadzora(Long slucajId) {
         String sql = """
             SELECT ln.UNOS_ID, ln.DATUM_PRIMOPREDAJE, ln.SVRHA_PRIMOPREDAJE,
@@ -158,6 +193,13 @@ public class IzvjestajRepository {
         return lanac;
     }
 
+    /**
+     * Dohvata tim dodijeljen na slučaj za izvještaj (JOIN sa {@code nbp.NBP_USER}, {@code nbp.NBP_ROLE} i UPOSLENIK_PROFIL).
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.TimInfo} objekata, sortirana po ulozi na slučaju
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.TimInfo> findTim(Long slucajId) {
         String sql = """
             SELECT t.ULOGA_NA_SLUCAJU,
@@ -192,6 +234,13 @@ public class IzvjestajRepository {
         return tim;
     }
 
+    /**
+     * Dohvata sve svjedoke na slučaju za izvještaj (LEFT JOIN sa ADRESE).
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.SvjedokInfo} objekata, sortirana po imenu
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.SvjedokInfo> findSvjedoci(Long slucajId) {
         String sql = """
             SELECT sv.IME_PREZIME, sv.JMBG, sv.KONTAKT_TELEFON, sv.BILJESKA,
@@ -223,6 +272,13 @@ public class IzvjestajRepository {
         return svjedoci;
     }
 
+    /**
+     * Dohvata sve osumnjičene na slučaju za izvještaj, uključujući fotografije u Base64.
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.OsumnjiceniInfo} objekata, sortirana po imenu
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.OsumnjiceniInfo> findOsumnjiceni(Long slucajId) {
         String sql = """
             SELECT o.OSUMNJICENI_ID, o.IME_PREZIME, o.JMBG, o.DATUM_RODJENJA,
@@ -284,6 +340,13 @@ public class IzvjestajRepository {
         return base64Slike;
     }
 
+    /**
+     * Dohvata sva krivična djela vezana za slučaj za izvještaj (JOIN sa KRIVICNA_DJELA).
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.KrivicnoDjeloInfo} objekata, sortirana po nazivu
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<IzvjestajDTO.KrivicnoDjeloInfo> findKrivicnaDjela(Long slucajId) {
         String sql = """
             SELECT kd.NAZIV, kd.KATEGORIJA, kd.KAZNENI_ZAKON_CLAN
@@ -312,6 +375,22 @@ public class IzvjestajRepository {
         return djela;
     }
 
+    /**
+     * Sprema ili ažurira PDF izvještaj za dati slučaj u tabeli IZVJESTAJI_SLUCAJEVA.
+     * Ako izvještaj već postoji, ažurira ga; inače kreira novi.
+     *
+     * @param slucajId           ID slučaja
+     * @param stanicaId          ID stanice koja generiše izvještaj
+     * @param userId             ID korisnika koji generiše izvještaj
+     * @param imeGenerisao       ime korisnika koji generiše izvještaj
+     * @param pdfSadrzaj         binarni sadržaj PDF fajla
+     * @param brojDokaza         broj dokaza uključenih u izvještaj
+     * @param brojOsumnjicenih   broj osumnjičenih uključenih u izvještaj
+     * @param brojSvjedoka       broj svjedoka uključenih u izvještaj
+     * @param brojClanovaTima    broj članova tima uključenih u izvještaj
+     * @param brojKrivicnihDjela broj krivičnih djela uključenih u izvještaj
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     /**
      * Spasavanje PDF izvještaja u bazu
      * Ako izvještaj već postoji za ovaj slučaj - ažuriraj ga
@@ -418,6 +497,13 @@ public class IzvjestajRepository {
         }
     }
 
+    /**
+     * Dohvata forenzičke izvještaje za sve dokaze na slučaju za izvještaj.
+     *
+     * @param slucajId ID slučaja
+     * @return lista {@link IzvjestajDTO.ForenzickiIzvjestajInfo} objekata, sortirana po datumu kreiranja
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     /**
      * Dohvatanje forenzičkih izvještaja za sve dokaze na slučaju
      */

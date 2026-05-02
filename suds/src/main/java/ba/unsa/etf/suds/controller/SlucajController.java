@@ -21,6 +21,17 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST kontroler za upravljanje krivičnim slučajevima.
+ *
+ * <p>Bazna putanja: {@code /api/slucajevi}. Pruža operacije za dohvat, kreiranje,
+ * ažuriranje statusa slučajeva, upravljanje svjedocima i generisanje PDF izvještaja.
+ * Kreiranje slučaja zahtijeva ulogu {@code SEF_STANICE} ili {@code INSPEKTOR}.
+ * Identitet korisnika se čita iz {@code SecurityContextHolder}; stanicaId se
+ * izvlači iz JWT tokena putem {@code JwtUtil.extractStanicaId} kada nije proslijeđen
+ * u tijelu zahtjeva. Delegira operacije servisima {@code SlucajService},
+ * {@code SvjedokService} i {@code OsumnjiceniService}.
+ */
 @RestController
 @RequestMapping("/api/slucajevi")
 @Tag(name = "Slučajevi", description = "Upravljanje slučajevima")
@@ -31,6 +42,7 @@ public class SlucajController {
     private final OsumnjiceniService osumnjiceniService;
     private final JwtUtil jwtUtil;
 
+    /** Konstruktorska injekcija servisa za slučajeve, svjedoke, osumnjičene i JWT pomoćnih metoda. */
     public SlucajController(SlucajService slucajService,
                             SvjedokService svjedokService,
                             OsumnjiceniService osumnjiceniService,
@@ -41,6 +53,13 @@ public class SlucajController {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * GET /api/slucajevi/broj/{brojSlucaja} - dohvata detalje slučaja po broju slučaja.
+     *
+     * @param brojSlucaja broj slučaja (alfanumerički identifikator)
+     * @return 200 + {@link SlucajDetaljiDTO} sa svim detaljima slučaja,
+     *         404 ako slučaj nije pronađen
+     */
     @GetMapping("/broj/{brojSlucaja}")
     @Operation(summary = "Dohvati detalje slučaja po broju")
     @ApiResponses(value = {
@@ -57,6 +76,14 @@ public class SlucajController {
         return ResponseEntity.ok(detalji);
     }
 
+    /**
+     * GET /api/slucajevi - dohvata sve slučajeve filtrirane prema ulozi prijavljenog korisnika.
+     *
+     * <p>Identitet i uloga korisnika se čitaju iz {@code SecurityContextHolder}.
+     * Filtriranje po ulozi vrši {@code SlucajService.getSlucajeviFiltered}.
+     *
+     * @return 200 + lista {@link SlucajListDTO} filtrirana prema ulozi korisnika
+     */
     @GetMapping
     @Operation(summary = "Dohvati sve slučajeve (filtriran po roli)")
     @ApiResponse(responseCode = "200", description = "Lista slučajeva vraćena")
@@ -74,6 +101,13 @@ public class SlucajController {
         return ResponseEntity.ok(slucajevi);
     }
 
+    /**
+     * GET /api/slucajevi/{id} - dohvata slučaj po internom ID-u.
+     *
+     * @param id interni identifikator slučaja
+     * @return 200 + {@link SlucajListDTO},
+     *         404 ako slučaj nije pronađen
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Dohvati slučaj po ID-u")
     @ApiResponses(value = {
@@ -86,6 +120,15 @@ public class SlucajController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * PATCH /api/slucajevi/{id}/status - ažurira status slučaja.
+     *
+     * @param id      interni identifikator slučaja
+     * @param request tijelo zahtjeva sa novim statusom
+     * @return 200 ako je status uspješno ažuriran,
+     *         400 ako je status nevalidan,
+     *         404 ako slučaj nije pronađen
+     */
     @PatchMapping("/{id}/status")
     @Operation(summary = "Ažuriraj status slučaja")
     @ApiResponses(value = {
@@ -105,6 +148,13 @@ public class SlucajController {
         }
     }
 
+    /**
+     * GET /api/slucajevi/{id}/izvjestaj - dohvata izvještaj za slučaj.
+     *
+     * @param id interni identifikator slučaja
+     * @return 200 + {@link IzvjestajDTO},
+     *         404 ako izvještaj nije pronađen
+     */
     @GetMapping("/{id}/izvjestaj")
     @Operation(summary = "Dohvati izvještaj za slučaj")
     @ApiResponses(value = {
@@ -117,6 +167,21 @@ public class SlucajController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * POST /api/slucajevi - kreira novi krivični slučaj.
+     *
+     * <p>Samo {@code SEF_STANICE} i {@code INSPEKTOR} mogu kreirati slučajeve
+     * ({@code @PreAuthorize("hasAnyRole('SEF_STANICE', 'INSPEKTOR')")}).
+     * Identitet korisnika se čita iz {@code SecurityContextHolder}. Ako {@code stanicaId}
+     * nije proslijeđen u tijelu zahtjeva, izvlači se iz JWT tokena putem
+     * {@code JwtUtil.extractStanicaId}.
+     *
+     * @param request     tijelo zahtjeva sa podacima novog slučaja
+     * @param httpRequest HTTP zahtjev iz kojeg se izvlači JWT token za stanicaId
+     * @return 201 + kreirani {@link SlucajListDTO},
+     *         403 ako korisnik nema odgovarajuću ulogu,
+     *         500 pri grešci na serveru
+     */
     @PreAuthorize("hasAnyRole('SEF_STANICE', 'INSPEKTOR')")
     @PostMapping
     @Operation(summary = "Kreiraj novi slučaj")
@@ -146,6 +211,14 @@ public class SlucajController {
         }
     }
 
+    /**
+     * GET /api/slucajevi/moji - dohvata slučajeve prijavljenog korisnika.
+     *
+     * <p>Identitet i uloga korisnika se čitaju iz {@code SecurityContextHolder}.
+     * Filtriranje po ulozi vrši {@code SlucajService.getMojiSlucajevi}.
+     *
+     * @return 200 + lista {@link MojSlucajDTO} slučajeva vezanih za prijavljenog korisnika
+     */
     @GetMapping("/moji")
     @Operation(summary = "Dohvati moje slučajeve")
     @ApiResponse(responseCode = "200", description = "Lista mojih slučajeva vraćena")
@@ -163,6 +236,14 @@ public class SlucajController {
         return ResponseEntity.ok(slucajevi);
     }
 
+    /**
+     * POST /api/slucajevi/{slucajId}/svjedoci - dodaje svjedoka na slučaj.
+     *
+     * @param slucajId identifikator slučaja
+     * @param request  tijelo zahtjeva sa podacima svjedoka
+     * @return 201 + {@link SvjedokDTO} kreiranog svjedoka,
+     *         500 pri grešci na serveru
+     */
     @PostMapping("/{slucajId}/svjedoci")
     @Operation(summary = "Dodaj svjedoka na slučaj")
     @ApiResponses(value = {
@@ -205,6 +286,18 @@ public class SlucajController {
         }
     }*/
 
+    /**
+     * GET /api/slucajevi/{id}/generate-report - generiše i preuzima PDF izvještaj za slučaj.
+     *
+     * <p>Vraća binarni PDF fajl kao {@code application/pdf} sa {@code Content-Disposition: attachment}.
+     * Identitet korisnika se izvlači iz JWT tokena putem {@code JwtUtil.extractUserId}.
+     *
+     * @param id      interni identifikator slučaja
+     * @param request HTTP zahtjev iz kojeg se izvlači JWT token
+     * @return 200 + PDF bajt-niz sa odgovarajućim headerima za preuzimanje,
+     *         404 ako slučaj nije pronađen,
+     *         500 pri grešci pri generisanju PDF-a
+     */
     @GetMapping("/{id}/generate-report")
     @Operation(summary = "Generiši i preuzmi PDF izvještaj za slučaj")
     @ApiResponses(value = {

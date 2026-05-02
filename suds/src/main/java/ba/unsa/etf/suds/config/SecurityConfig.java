@@ -11,17 +11,51 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Centralna Spring Security konfiguracija SUDS aplikacije.
+ * <p>
+ * Aktivira web sigurnost ({@code @EnableWebSecurity}) i metod-nivo sigurnost
+ * ({@code @EnableMethodSecurity}) kako bi {@code @PreAuthorize} anotacije
+ * na kontrolerima funkcionisale. Koristi isključivo JWT autentifikaciju —
+ * nema HTTP sesija ni form-based prijave.
+ * </p>
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
 
+    /**
+     * Kreira instancu konfiguracije uz injekciju JWT filtera.
+     *
+     * @param jwtFilter filter koji parsira i validira JWT token iz svakog zahtjeva
+     */
     public SecurityConfig(JwtFilter jwtFilter) {
         this.jwtFilter = jwtFilter;
     }
 
     @Bean
+    /**
+     * Konfiguriše glavni Spring Security filter chain:
+     * <ul>
+     *   <li>Onemogućuje CSRF (stateless API);</li>
+     *   <li>Postavlja CORS za frontend na {@code http://localhost:5173};</li>
+     *   <li>Stateless session policy (nema {@code HttpSession}-a);</li>
+     *   <li>Whitelist javnih endpoint-a: {@code /api/auth/login},
+     *       {@code /api/stanice/register}, {@code /api/adrese},
+     *       Swagger UI i OpenAPI JSON putanje, te {@code /error};</li>
+     *   <li>Endpoint-i za fotografije dokaza i osumnjičenih dostupni svim
+     *       autentifikovanim korisnicima;</li>
+     *   <li>Sve ostalo zahtijeva autentifikaciju;</li>
+     *   <li>Ubacuje {@link JwtFilter} prije
+     *       {@link UsernamePasswordAuthenticationFilter}.</li>
+     * </ul>
+     *
+     * @param http Spring Security konfiguracijski builder
+     * @return izgrađen {@link SecurityFilterChain}
+     * @throws Exception ako konfiguracija ne uspije
+     */
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -56,11 +90,27 @@ public class SecurityConfig {
     }
 
     @Bean
+    /**
+     * Kreira {@link BCryptPasswordEncoder} bean za hashiranje lozinki.
+     *
+     * @return instanca BCrypt enkodera sa podrazumijevanim faktorom snage (10)
+     */
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
+    /**
+     * Konfiguriše CORS politiku za cijelu aplikaciju.
+     * <p>
+     * Dozvoljava zahtjeve isključivo s frontend origin-a
+     * {@code http://localhost:5173}, uz podršku za sve standardne HTTP metode
+     * i zaglavlja {@code Authorization} i {@code Content-Type}.
+     * Credentials (kolačići, Authorization zaglavlje) su dozvoljeni.
+     * </p>
+     *
+     * @return {@link org.springframework.web.cors.CorsConfigurationSource} registrovan za sve putanje ({@code /**})
+     */
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
         configuration.setAllowedOrigins(java.util.List.of("http://localhost:5173"));
@@ -74,6 +124,17 @@ public class SecurityConfig {
     }
 
     @Bean
+    /**
+     * Stub {@link org.springframework.security.core.userdetails.UserDetailsService} bean.
+     * <p>
+     * SUDS koristi isključivo JWT autentifikaciju, pa standardni Spring Security
+     * mehanizam učitavanja korisnika po korisničkom imenu nije potreban.
+     * Svaki poziv baca {@link org.springframework.security.core.userdetails.UsernameNotFoundException}
+     * kako bi se spriječilo nenamjerno korištenje form-based prijave.
+     * </p>
+     *
+     * @return {@link org.springframework.security.core.userdetails.UserDetailsService} koji uvijek baca iznimku
+     */
     public org.springframework.security.core.userdetails.UserDetailsService userDetailsService() {
         return username -> {
             throw new org.springframework.security.core.userdetails.UsernameNotFoundException("Use JWT");

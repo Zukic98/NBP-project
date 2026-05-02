@@ -15,6 +15,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST kontroler za autentifikaciju (prijava, odjava, vlastita lozinka).
+ *
+ * <p>Bazna putanja: {@code /api/auth}. Endpoint za prijavu ({@code POST /login})
+ * je javan; ostali zahtijevaju validan JWT token u {@code Authorization} headeru.
+ * Delegira logiku autentifikacije servisu {@code AuthService}, a upravljanje
+ * lozinkama servisu {@code UposlenikService}.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autentifikacija", description = "Prijava, odjava i upravljanje lozinkama")
@@ -24,12 +32,24 @@ public class AuthController {
     private final UposlenikService uposlenikService;
     private final JwtUtil jwtUtil;
 
+    /** Konstruktorska injekcija servisa za autentifikaciju, uposlenike i JWT pomoćnih metoda. */
     public AuthController(AuthService authService, UposlenikService uposlenikService, JwtUtil jwtUtil) {
         this.authService = authService;
         this.uposlenikService = uposlenikService;
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * POST /api/auth/login - prijava korisnika.
+     *
+     * <p>Javan endpoint (ne zahtijeva token). Validira kombinaciju email/brojZnacke/lozinka
+     * i u slučaju uspjeha vraća potpisani JWT token.
+     *
+     * @param loginRequest tijelo zahtjeva sa kredencijalima korisnika
+     * @return 200 + {@link LoginResponse} sa JWT tokenom ako je prijava uspješna,
+     *         401 ako su kredencijali neispravni,
+     *         403 ako je korisnički račun deaktiviran
+     */
     @PostMapping("/login")
     @Operation(summary = "Prijava korisnika")
     @ApiResponses(value = {
@@ -49,6 +69,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * POST /api/auth/logout - odjava trenutnog korisnika i stavljanje tokena na crnu listu.
+     *
+     * @param token Authorization header u obliku {@code "Bearer <jwt>"}
+     * @return 200 sa potvrdnom porukom o uspješnoj odjavi
+     */
     @PostMapping("/logout")
     @Operation(summary = "Odjava korisnika")
     @ApiResponse(responseCode = "200", description = "Uspješna odjava")
@@ -57,6 +83,16 @@ public class AuthController {
         return ResponseEntity.ok("Uspješno ste se odjavili.");
     }
 
+    /**
+     * PUT /api/auth/promijeni-lozinku - promjena vlastite lozinke prijavljenog korisnika.
+     *
+     * <p>Identitet korisnika se utvrđuje iz JWT tokena putem {@code JwtUtil.extractUserId}.
+     * Tijelo zahtjeva mora sadržavati polja {@code staraLozinka} i {@code novaLozinka}.
+     *
+     * @param request     mapa sa ključevima {@code staraLozinka} i {@code novaLozinka}
+     * @param httpRequest HTTP zahtjev iz kojeg se izvlači JWT token
+     * @return 200 sa potvrdnom porukom, 400 ako stara lozinka nije ispravna ili su podaci nevalidni
+     */
     @PutMapping("/promijeni-lozinku")
     @Operation(summary = "Promijeni vlastitu lozinku")
     @ApiResponses(value = {
@@ -74,6 +110,7 @@ public class AuthController {
         }
     }
 
+    /** Pomoćna metoda — izvlači čist JWT iz {@code Authorization} headera (uklanja prefiks "Bearer "). */
     private String extractToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

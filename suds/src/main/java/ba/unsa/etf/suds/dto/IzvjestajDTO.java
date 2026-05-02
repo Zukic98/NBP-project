@@ -4,15 +4,38 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Odgovor za GET /api/slucajevi/{id}/izvjestaj.
+ *
+ * <p>Kompletan izvještaj slučaja koji agregira sve relevantne podatke:
+ * detalje slučaja, dokaze s fotografijama, lanac nadzora, tim, svjedoke,
+ * osumnjičene, krivična djela i forenzičke izvještaje. Koristi se za
+ * generisanje PDF izvještaja putem iText 7.
+ */
 public class IzvjestajDTO {
 
+    /** Osnovni podaci o slučaju. */
     private SlucajInfo slucaj;
+
+    /** Lista dokaza vezanih za slučaj. */
     private List<DokazInfo> dokazi;
+
+    /** Hronološki niz svih primopredaja dokaza u slučaju. */
     private List<LanacNadzoraInfo> lanacNadzora;
+
+    /** Članovi tima dodjeljeni slučaju. */
     private List<TimInfo> tim;
+
+    /** Svjedoci vezani za slučaj. */
     private List<SvjedokInfo> svjedoci;
+
+    /** Osumnjičeni vezani za slučaj. */
     private List<OsumnjiceniInfo> osumnjiceni;
+
+    /** Krivična djela vezana za slučaj. */
     private List<KrivicnoDjeloInfo> krivicnaDjela;
+
+    /** Forenzički izvještaji vezani za dokaze slučaja. */
     private List<ForenzickiIzvjestajInfo> forenzickiIzvjestaji;
 
     // Getter i Setter
@@ -44,13 +67,28 @@ public class IzvjestajDTO {
     public void setKrivicnaDjela(List<KrivicnoDjeloInfo> krivicnaDjela) { this.krivicnaDjela = krivicnaDjela; }
 
     // Inner klase
+
+    /** Sažeti podaci o slučaju za potrebe izvještaja. */
     public static class SlucajInfo {
+        /** Primarni ključ slučaja. */
         private Long slucajId;
+
+        /** Jedinstveni broj slučaja. */
         private String brojSlucaja;
+
+        /** Tekstualni opis slučaja. */
         private String opis;
+
+        /** Trenutni status slučaja. */
         private String status;
+
+        /** Ime i prezime voditelja slučaja. */
         private String voditeljSlucaja;
+
+        /** Naziv policijske stanice koja vodi slučaj. */
         private String stanica;
+
+        /** Datum i vrijeme kreiranja slučaja. */
         private Timestamp datumKreiranja;
 
         // Getteri i Setteri
@@ -76,14 +114,30 @@ public class IzvjestajDTO {
         public void setDatumKreiranja(Timestamp datumKreiranja) { this.datumKreiranja = datumKreiranja; }
     }
 
+    /** Podaci o jednom dokazu za potrebe izvještaja. */
     public static class DokazInfo {
+        /** Primarni ključ dokaza. */
         private Long dokazId;
+
+        /** Tekstualni opis dokaza. */
         private String opis;
+
+        /** Tip dokaza. */
         private String tipDokaza;
+
+        /** Lokacija pronalaska dokaza. */
         private String lokacijaPronalaska;
+
+        /** Trenutni status dokaza. */
         private String status;
+
+        /** Ime i prezime uposlenika koji je prikupio dokaz. */
         private String prikupioIme;
+
+        /** Datum i vrijeme prikupljanja dokaza. */
         private Timestamp datumPrikupa;
+
+        /** Lista Base64-enkodiranih fotografija dokaza. */
         private List<String> fotografije;
 
         // Getteri i Setteri
@@ -112,16 +166,36 @@ public class IzvjestajDTO {
         public void setFotografije(List<String> fotografije) { this.fotografije = fotografije; }
     }
 
+    /** Jedan unos u lancu nadzora za potrebe izvještaja. */
     public static class LanacNadzoraInfo {
+        /** Primarni ključ unosa u lancu nadzora. */
         private Long unosId;
+
+        /** Opis dokaza koji je predmet primopredaje. */
         private String dokazOpis;
+
+        /** Datum i vrijeme primopredaje. */
         private Timestamp datumPrimopredaje;
+
+        /** Ime i prezime uposlenika koji je predao dokaz. */
         private String predaoIme;
+
+        /** Ime i prezime uposlenika koji je preuzeo dokaz. */
         private String preuzeoIme;
+
+        /** Svrha primopredaje. */
         private String svrhaPrimopredaje;
+
+        /** Status potvrde primopredaje. */
         private String potvrdaStatus;
+
+        /** Napomena uz potvrdu primopredaje. */
         private String potvrdaNapomena;
+
+        /** Datum i vrijeme potvrde primopredaje. */
         private Timestamp potvrdaDatum;
+
+        /** Ime i prezime uposlenika koji je potvrdio primopredaju. */
         private String potvrdioIme;
 
         // Getteri i Setteri (dodaj sve)
@@ -156,11 +230,21 @@ public class IzvjestajDTO {
         public void setPotvrdioIme(String potvrdioIme) { this.potvrdioIme = potvrdioIme; }
     }
 
+    /** Jedan član tima za potrebe izvještaja. */
     public static class TimInfo {
+        /** Ime i prezime člana tima. */
         private String imePrezime;
+
+        /** Naziv sistemske uloge člana tima (npr. "INSPEKTOR"). */
         private String nazivUloge;
+
+        /** Uloga člana na ovom konkretnom slučaju. */
         private String ulogaNaSlucaju;
+
+        /** Email adresa člana tima. */
         private String email;
+
+        /** Broj značke člana tima. */
         private String brojZnacke;
 
         // Getteri i Setteri
@@ -180,11 +264,21 @@ public class IzvjestajDTO {
         public void setBrojZnacke(String brojZnacke) { this.brojZnacke = brojZnacke; }
     }
 
+    /** Jedan svjedok za potrebe izvještaja. */
     public static class SvjedokInfo {
+        /** Ime i prezime svjedoka. */
         private String imePrezime;
+
+        /** Jedinstveni matični broj građana svjedoka. */
         private String jmbg;
+
+        /** Adresa stanovanja svjedoka. */
         private String adresa;
+
+        /** Kontakt telefon svjedoka. */
         private String kontaktTelefon;
+
+        /** Bilješka o svjedoku ili iskazu. */
         private String biljeska;
 
         // Getteri i Setteri
@@ -204,12 +298,24 @@ public class IzvjestajDTO {
         public void setBiljeska(String biljeska) { this.biljeska = biljeska; }
     }
 
+    /** Jedan osumnjičeni za potrebe izvještaja. */
     public static class OsumnjiceniInfo {
+        /** Primarni ključ osumnjičenog. */
         private Long osumnjiceniId;
+
+        /** Ime i prezime osumnjičenog. */
         private String imePrezime;
+
+        /** Jedinstveni matični broj građana osumnjičenog. */
         private String jmbg;
+
+        /** Datum rođenja osumnjičenog. */
         private Date datumRodjenja;
+
+        /** Adresa stanovanja osumnjičenog. */
         private String adresa;
+
+        /** Lista Base64-enkodiranih fotografija osumnjičenog. */
         private List<String> fotografije;
 
         // Getteri i Setteri
@@ -232,9 +338,15 @@ public class IzvjestajDTO {
         public void setFotografije(List<String> fotografije) { this.fotografije = fotografije; }
     }
 
+    /** Jedno krivično djelo za potrebe izvještaja. */
     public static class KrivicnoDjeloInfo {
+        /** Naziv krivičnog djela. */
         private String naziv;
+
+        /** Kategorija krivičnog djela. */
         private String kategorija;
+
+        /** Član kaznenog zakona koji reguliše ovo djelo. */
         private String kazneniZakonClan;
 
         // Getteri i Setteri
@@ -248,13 +360,27 @@ public class IzvjestajDTO {
         public void setKazneniZakonClan(String kazneniZakonClan) { this.kazneniZakonClan = kazneniZakonClan; }
     }
 
+    /** Jedan forenzički izvještaj za potrebe izvještaja slučaja. */
     public static class ForenzickiIzvjestajInfo {
+        /** Primarni ključ forenzičkog izvještaja. */
         private Long izvjestajId;
+
+        /** ID dokaza na koji se izvještaj odnosi. */
         private Long dokazId;
+
+        /** Opis dokaza na koji se izvještaj odnosi. */
         private String dokazOpis;
+
+        /** Sadržaj forenzičkog izvještaja. */
         private String sadrzaj;
+
+        /** Zaključak forenzičara. */
         private String zakljucak;
+
+        /** Datum i vrijeme kreiranja izvještaja. */
         private java.sql.Timestamp datumKreiranja;
+
+        /** Ime i prezime forenzičara koji je kreirao izvještaj. */
         private String kreatorIme;
 
         // Getteri i Setteri

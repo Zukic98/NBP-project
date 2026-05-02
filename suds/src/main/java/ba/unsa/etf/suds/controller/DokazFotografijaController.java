@@ -12,6 +12,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST kontroler za upravljanje fotografijama dokaza.
+ *
+ * <p>Bazna putanja: {@code /api/dokazi}. Podržava dohvat i upload fotografija
+ * vezanih za dokaze. Upload je multipart/form-data zahtjev; jednom dodana fotografija
+ * ostaje trajno (nema brisanja). Identitet korisnika se izvlači iz JWT tokena
+ * putem {@code JwtUtil.extractUserId}.
+ */
 @RestController
 @RequestMapping("/api/dokazi")
 public class DokazFotografijaController {
@@ -19,6 +27,7 @@ public class DokazFotografijaController {
     private final DokazFotografijaService dokazFotografijaService;
     private final JwtUtil jwtUtil;
 
+    /** Konstruktorska injekcija servisa za fotografije dokaza i JWT pomoćnih metoda. */
     public DokazFotografijaController(DokazFotografijaService dokazFotografijaService,
                                       JwtUtil jwtUtil) {
         this.dokazFotografijaService = dokazFotografijaService;
@@ -26,8 +35,13 @@ public class DokazFotografijaController {
     }
 
     /**
-     * GET /api/dokazi/{dokazId}/fotografije
-     * Dobavljanje svih fotografija za dokaz
+     * GET /api/dokazi/{dokazId}/fotografije - dohvata sve fotografije za određeni dokaz.
+     *
+     * <p>Fotografije se vraćaju kao Base64-kodirani stringovi unutar {@link DokazFotografijaDTO}.
+     *
+     * @param dokazId identifikator dokaza
+     * @return 200 + lista {@link DokazFotografijaDTO},
+     *         500 pri grešci na serveru
      */
     // U DokazFotografijaController.java
     @GetMapping("/{dokazId}/fotografije")
@@ -48,9 +62,20 @@ public class DokazFotografijaController {
     }
 
     /**
-     * POST /api/dokazi/{dokazId}/fotografije
-     * Upload fotografije za dokaz
-     * Samo INSERT dozvoljen - jednom dodana fotografija ostaje trajno
+     * POST /api/dokazi/{dokazId}/fotografije - upload fotografije za određeni dokaz.
+     *
+     * <p>Multipart/form-data zahtjev. Dozvoljeni formati: JPEG, PNG, GIF, WebP.
+     * Maksimalna veličina fajla: 10 MB. Identitet korisnika se izvlači iz JWT tokena
+     * putem {@code JwtUtil.extractUserId}. Jednom dodana fotografija ostaje trajno.
+     *
+     * @param dokazId   identifikator dokaza
+     * @param file      fotografija kao multipart fajl
+     * @param redniBroj opcionalni redni broj fotografije
+     * @param opis      opcionalni opis fotografije
+     * @param token     Authorization header u obliku {@code "Bearer <jwt>"}
+     * @return 201 + poruka o uspješnom uploadu,
+     *         400 ako je format ili veličina fajla neispravna,
+     *         500 pri grešci na serveru
      */
     @PostMapping("/{dokazId}/fotografije")
     public ResponseEntity<?> uploadFotografiju(@PathVariable Long dokazId,

@@ -16,6 +16,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST kontroler za upravljanje uposlenicima policijske stanice.
+ *
+ * <p>Izlaže resurse na putanji {@code /api/uposlenici} i delegira poslovnu logiku
+ * servisu {@link UposlenikService}. Većina handlera ekstrahuje {@code stanicaId}
+ * iz JWT tokena putem {@link JwtUtil#extractStanicaId(String)} kako bi operacije
+ * bile ograničene na stanicu trenutno prijavljenog korisnika.</p>
+ */
 @RestController
 @RequestMapping("/api/uposlenici")
 @Tag(name = "Uposlenici", description = "Upravljanje uposlenicima")
@@ -24,11 +32,27 @@ public class UposlenikController {
     private final UposlenikService uposlenikService;
     private final JwtUtil jwtUtil;
 
+    /**
+     * Kreira instancu kontrolera s injektovanim servisom i JWT pomoćnom klasom.
+     *
+     * @param uposlenikService servis za upravljanje uposlenicima
+     * @param jwtUtil          pomoćna klasa za ekstrakciju podataka iz JWT tokena
+     */
     public UposlenikController(UposlenikService uposlenikService, JwtUtil jwtUtil) {
         this.uposlenikService = uposlenikService;
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * {@code GET /api/uposlenici} — vraća listu svih uposlenika stanice
+     * trenutno prijavljenog korisnika.
+     *
+     * <p>Identifikator stanice ekstrahuje se iz JWT tokena pozivom
+     * {@link JwtUtil#extractStanicaId(String)}.</p>
+     *
+     * @param httpRequest HTTP zahtjev iz kojeg se čita {@code Authorization} zaglavlje
+     * @return HTTP 200 s listom uposlenika, ili HTTP 500 u slučaju greške
+     */
     @GetMapping
     @Operation(summary = "Dohvati sve uposlenike stanice")
     @ApiResponses(value = {
@@ -48,6 +72,12 @@ public class UposlenikController {
         }
     }
 
+    /**
+     * {@code GET /api/uposlenici/{id}} — vraća podatke uposlenika s traženim ID-om.
+     *
+     * @param id jedinstveni identifikator uposlenika
+     * @return HTTP 200 s podacima uposlenika, ili HTTP 404 ako uposlenik nije pronađen
+     */
     @GetMapping("/{id}")
     @Operation(summary = "Dohvati uposlenika po ID-u")
     @ApiResponses(value = {
@@ -58,6 +88,20 @@ public class UposlenikController {
         return ResponseEntity.ok(uposlenikService.getUposlenikById(id));
     }
 
+    /**
+     * {@code PUT /api/uposlenici/{id}} — ažurira lične i profesionalne podatke
+     * uposlenika s traženim ID-om.
+     *
+     * <p>Identifikator stanice ekstrahuje se iz JWT tokena pozivom
+     * {@link JwtUtil#extractStanicaId(String)} kako bi se spriječilo
+     * mijenjanje uposlenika iz druge stanice.</p>
+     *
+     * @param id          jedinstveni identifikator uposlenika
+     * @param request     novi podaci uposlenika
+     * @param httpRequest HTTP zahtjev iz kojeg se čita {@code Authorization} zaglavlje
+     * @return HTTP 200 s porukom uspjeha, HTTP 403 ako uposlenik nije u istoj stanici,
+     *         ili HTTP 400 u slučaju druge greške
+     */
     @PutMapping("/{id}")
     @Operation(summary = "Ažuriraj podatke uposlenika")
     @ApiResponses(value = {
@@ -82,6 +126,19 @@ public class UposlenikController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Greška: " + e.getMessage());
         }
     }
+    /**
+     * {@code PUT /api/uposlenici/{id}/password-reset} — resetuje lozinku uposlenika
+     * s traženim ID-om.
+     *
+     * <p>Identifikator stanice ekstrahuje se iz JWT tokena pozivom
+     * {@link JwtUtil#extractStanicaId(String)} kako bi se osiguralo da se
+     * resetuje lozinka uposlenika iz iste stanice.</p>
+     *
+     * @param id          jedinstveni identifikator uposlenika
+     * @param request     mapa s ključem {@code novaLozinka} koji sadrži novu lozinku
+     * @param httpRequest HTTP zahtjev iz kojeg se čita {@code Authorization} zaglavlje
+     * @return HTTP 200 s porukom uspjeha, ili HTTP 404 ako uposlenik nije pronađen
+     */
     @PutMapping("/{id}/password-reset")
     @Operation(summary = "Resetuj lozinku uposlenika")
     @ApiResponses(value = {
@@ -95,6 +152,18 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
     return ResponseEntity.ok("Lozinka uspješno resetovana.");
 }
 
+    /**
+     * {@code POST /api/uposlenici} — dodaje novog uposlenika u stanicu
+     * trenutno prijavljenog korisnika.
+     *
+     * <p>Identifikator stanice ekstrahuje se iz JWT tokena pozivom
+     * {@link JwtUtil#extractStanicaId(String)}.</p>
+     *
+     * @param request     podaci novog uposlenika
+     * @param httpRequest HTTP zahtjev iz kojeg se čita {@code Authorization} zaglavlje
+     * @return HTTP 201 s porukom uspjeha, HTTP 400 u slučaju poslovne greške,
+     *         ili HTTP 500 u slučaju neočekivane greške
+     */
    @PostMapping
     @Operation(summary = "Dodaj novog uposlenika")
     @ApiResponses(value = {
@@ -120,6 +189,20 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
         }
     }
 
+    /**
+     * {@code PUT /api/uposlenici/{id}/status} — mijenja status uposlenika
+     * (npr. aktivan/neaktivan).
+     *
+     * <p>Identifikator stanice i ID trenutnog korisnika ekstrahuju se iz JWT tokena
+     * pozivima {@link JwtUtil#extractStanicaId(String)} i
+     * {@link JwtUtil#extractUserId(String)}.</p>
+     *
+     * @param id          jedinstveni identifikator uposlenika čiji se status mijenja
+     * @param request     novi status uposlenika
+     * @param httpRequest HTTP zahtjev iz kojeg se čita {@code Authorization} zaglavlje
+     * @return HTTP 200 s porukom uspjeha, HTTP 403 ako je pristup zabranjen,
+     *         HTTP 400 u slučaju poslovne greške, ili HTTP 500 u slučaju neočekivane greške
+     */
     @PutMapping("/{id}/status")
     @Operation(summary = "Promijeni status uposlenika")
     @ApiResponses(value = {
@@ -153,6 +236,13 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
         }
     }
 
+    /**
+     * Ekstrahuje JWT token iz {@code Authorization: Bearer <token>} zaglavlja zahtjeva.
+     *
+     * @param request HTTP zahtjev
+     * @return JWT token bez prefiksa {@code Bearer }
+     * @throws RuntimeException ako zaglavlje nije prisutno ili nema ispravan format
+     */
     private String extractToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

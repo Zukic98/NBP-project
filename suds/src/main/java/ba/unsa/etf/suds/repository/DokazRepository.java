@@ -11,16 +11,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za rad sa tabelom DOKAZI (forenzički dokazi).
+ *
+ * <p>Koristi čisti JDBC bez ORM-a (pravilo predmeta NBP). Svaka metoda
+ * otvara vlastitu konekciju preko {@link DatabaseManager#getConnection()}
+ * i zatvara je kroz try-with-resources. SQLException-i se wrappaju
+ * u RuntimeException sa engleskom porukom.
+ *
+ * <p>Neke metode vrše JOIN sa tabelama LANAC_NADZORA i {@code nbp.NBP_USER}
+ * radi dohvatanja proširenih informacija o dokazima.
+ */
 @Repository
 public class DokazRepository {
 
     private final DatabaseManager databaseManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     // Spring automatski injekta tvoj DatabaseManager
     public DokazRepository(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
+    /**
+     * Sprema novi dokaz u tabelu DOKAZI i vraća ga sa generisanim ID-om.
+     *
+     * @param dokaz objekat dokaza koji se sprema
+     * @return isti objekat sa postavljenim {@code dokazId}
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public Dokaz save(Dokaz dokaz) {
         String sql = "INSERT INTO Dokazi (slucaj_id, stanica_id, opis, lokacija_pronalaska, tip_dokaza, status, datum_prikupa, prikupio_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -47,6 +66,14 @@ public class DokazRepository {
         }
     }
 
+    /**
+     * Učitava listu dokaza za dati slučaj iz tabele DOKAZI.
+     * Vrši LEFT JOIN sa {@code nbp.NBP_USER} radi dohvatanja imena prikupljača.
+     *
+     * @param slucajId ID slučaja čiji se dokazi traže
+     * @return lista DTO objekata, sortirana po datumu prikupljanja silazno
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<DokazListDTO> findBySlucajId(Long slucajId) {
         String sql = "SELECT d.DOKAZ_ID, d.OPIS, d.LOKACIJA_PRONALASKA, d.TIP_DOKAZA, d.STATUS, " +
                 "(u.FIRST_NAME||' '||u.LAST_NAME) AS PRIKUPIO_IME, d.DATUM_PRIKUPA, d.SLUCAJ_ID " +
@@ -80,6 +107,15 @@ public class DokazRepository {
         return rezultat;
     }
 
+    /**
+     * Dohvata trenutno stanje dokaza: ko ga drži, status i da li postoji čekajuća potvrda.
+     * Izvršava tri SQL upita unutar iste konekcije: osnovni podaci, zadnja potvrđena primopredaja
+     * i provjera čekajućih potvrda.
+     *
+     * @param dokazId ID dokaza
+     * @return Optional sa {@link DokazStanjeInfo} ako dokaz postoji, inače prazan
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public Optional<DokazStanjeInfo> findStanje(Long dokazId) {
         String dokazSql = "SELECT DOKAZ_ID, STATUS, PRIKUPIO_USER_ID FROM DOKAZI WHERE DOKAZ_ID = ?";
         String confirmedSql = "SELECT PREUZEO_USER_ID, DATUM_PRIMOPREDAJE " +
@@ -149,6 +185,14 @@ public class DokazRepository {
         }
     }
 
+    /**
+     * Učitava kompletan lanac nadzora za dati dokaz sa imenima svih učesnika.
+     * Vrši JOIN sa {@code nbp.NBP_USER} za predavaoca, primaoca i potvrđivača.
+     *
+     * @param dokazId ID dokaza
+     * @return lista DTO objekata lanca nadzora, sortirana po datumu primopredaje uzlazno
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public List<LanacDetaljiDTO> findLanacWithNames(Long dokazId) {
         String sql = "SELECT ln.UNOS_ID, ln.DATUM_PRIMOPREDAJE, " +
                 "(u1.FIRST_NAME||' '||u1.LAST_NAME) AS PREDAO_IME, " +
@@ -187,6 +231,13 @@ public class DokazRepository {
         return lanac;
     }
 
+    /**
+     * Dohvata ID stanice kojoj pripada dati korisnik iz tabele UPOSLENIK_PROFIL.
+     *
+     * @param userId ID korisnika
+     * @return ID stanice, ili {@code null} ako korisnik nema profil ili stanica nije postavljena
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public Long findStanicaIdByUserId(Long userId) {
         String sql = "SELECT STANICA_ID FROM UPOSLENIK_PROFIL WHERE USER_ID = ?";
         try (Connection conn = databaseManager.getConnection();
@@ -204,6 +255,14 @@ public class DokazRepository {
         }
     }
 
+    /**
+     * Ažurira status dokaza u tabeli DOKAZI.
+     *
+     * @param dokazId    ID dokaza koji se ažurira
+     * @param noviStatus novi status koji se postavlja
+     * @return {@code true} ako je ažuriran barem jedan red, inače {@code false}
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public boolean updateStatus(Long dokazId, String noviStatus) {
         String sql = "UPDATE Dokazi SET STATUS = ? WHERE DOKAZ_ID = ?";
         try (Connection conn = databaseManager.getConnection();
@@ -216,6 +275,13 @@ public class DokazRepository {
         }
     }
 
+    /**
+     * Pretražuje dokaz po primarnom ključu u tabeli DOKAZI.
+     *
+     * @param id vrijednost DOKAZ_ID kolone
+     * @return objekat dokaza ako postoji, ili {@code null}
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public Dokaz findById(Long id) {
         String sql = "SELECT * FROM Dokazi WHERE dokaz_id = ?";
 

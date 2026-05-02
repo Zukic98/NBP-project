@@ -13,16 +13,35 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST kontroler za upravljanje lancem nadzora dokaza.
+ *
+ * <p>Bazna putanja: {@code /api/lanac-nadzora}. Pruža operacije za slanje dokaza,
+ * pregled vlastitih zahtjeva, prihvatanje i potvrdu/odbijanje primopredaje.
+ * Identitet korisnika se čita iz {@code SecurityContextHolder} (principal = userId kao String).
+ * Delegira sve operacije servisu {@code LanacNadzoraService}.
+ */
 @RestController
 @RequestMapping("/api/lanac-nadzora")
 @Tag(name = "Lanac nadzora", description = "Lanac nadzora dokaza")
 public class LanacNadzoraController {
     private final LanacNadzoraService service;
 
+    /** Konstruktorska injekcija servisa za lanac nadzora. */
     public LanacNadzoraController(LanacNadzoraService service) {
         this.service = service;
     }
 
+    /**
+     * POST /api/lanac-nadzora/posalji - šalje dokaz na primopredaju.
+     *
+     * <p>Identitet pošiljaoca se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @param request tijelo zahtjeva sa podacima o slanju dokaza
+     * @return 200 + kreirani {@link LanacNadzora} unos,
+     *         400 ako je zahtjev neispravan,
+     *         500 pri grešci na serveru
+     */
     @PostMapping("/posalji")
     @Operation(summary = "Pošalji dokaz na primopredaju")
     @ApiResponses(value = {
@@ -39,6 +58,13 @@ public class LanacNadzoraController {
         return ResponseEntity.ok(lanac);
     }
 
+    /**
+     * GET /api/lanac-nadzora/moji-zahtjevi - dohvata zahtjeve u lancu nadzora za prijavljenog korisnika.
+     *
+     * <p>Identitet korisnika se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @return 200 + lista {@link LanacNadzora} zahtjeva vezanih za prijavljenog korisnika
+     */
     @GetMapping("/moji-zahtjevi")
     @Operation(summary = "Dohvati moje zahtjeve u lancu nadzora")
     @ApiResponse(responseCode = "200", description = "Lista zahtjeva vraćena")
@@ -50,6 +76,15 @@ public class LanacNadzoraController {
         return ResponseEntity.ok(zahtjevi);
     }
 
+    /**
+     * PUT /api/lanac-nadzora/prihvati/{id} - prihvata zaprimljeni dokaz.
+     *
+     * <p>Identitet primaoca se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @param unosId identifikator unosa u lancu nadzora
+     * @return 200 bez sadržaja ako je prihvatanje uspješno,
+     *         404 ako unos nije pronađen
+     */
     @PutMapping("/prihvati/{id}")
     @Operation(summary = "Prihvati zaprimljeni dokaz")
     @ApiResponses(value = {
@@ -64,6 +99,16 @@ public class LanacNadzoraController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * PATCH /api/lanac-nadzora/{unosId}/potvrda - potvrđuje ili odbija primopredaju.
+     *
+     * <p>Identitet korisnika se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @param unosId  identifikator unosa u lancu nadzora
+     * @param request tijelo zahtjeva sa statusom potvrde i opcionalnom napomenom
+     * @return 200 bez sadržaja ako je status ažuriran,
+     *         404 ako unos nije pronađen
+     */
     @PatchMapping("/{unosId}/potvrda")
     @Operation(summary = "Potvrdi ili odbij primopredaju")
     @ApiResponses(value = {

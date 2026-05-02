@@ -17,13 +17,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+/**
+ * Repozitorij za upravljanje uposlenicima i njihovim profilima iz tabela {@code nbp.NBP_USER},
+ * {@code UPOSLENIK_PROFIL} i {@code CRNA_LISTA_TOKENA}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class UposlenikRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public UposlenikRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
+
+    /**
+     * Dohvata podatke za prijavu uposlenika prema e-mail adresi i broju značke.
+     *
+     * @param email  e-mail adresa uposlenika
+     * @param znacka broj značke uposlenika
+     * @return {@link Optional} koji sadrži {@link ba.unsa.etf.suds.dto.UposlenikLoginDTO}, ili prazan ako nije pronađen
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Optional<UposlenikLoginDTO> findByEmailAndZnacka(String email, String znacka) {
         String sql = """
             SELECT 
@@ -64,6 +80,12 @@ public class UposlenikRepository {
         return Optional.empty();
     }
 
+    /**
+     * Dohvata sve uposlenike iz svih stanica kao DTO.
+     *
+     * @return lista svih {@link ba.unsa.etf.suds.dto.UposlenikDTO} objekata
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<UposlenikDTO> findAllUposlenici() {
         List<UposlenikDTO> uposlenici = new ArrayList<>();
         String sql = """
@@ -91,6 +113,13 @@ public class UposlenikRepository {
         }
         return uposlenici;
     }
+    /**
+     * Dohvata sve uposlenike određene stanice kao DTO.
+     *
+     * @param stanicaId identifikator stanice
+     * @return lista {@link ba.unsa.etf.suds.dto.UposlenikDTO} objekata za datu stanicu
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<UposlenikDTO> findAllByStanicaId(Long stanicaId) {
         List<UposlenikDTO> uposlenici = new ArrayList<>();
         String sql = """
@@ -121,6 +150,13 @@ public class UposlenikRepository {
         }
         return uposlenici;
     }
+    /**
+     * Dohvata uposlenika prema identifikatoru korisnika kao DTO.
+     *
+     * @param userId identifikator korisnika
+     * @return {@link Optional} koji sadrži {@link ba.unsa.etf.suds.dto.UposlenikDTO}, ili prazan ako nije pronađen
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Optional<UposlenikDTO> findByUserId(Long userId) {
         String sql = """
             SELECT 
@@ -154,6 +190,12 @@ public class UposlenikRepository {
         return Optional.empty();
     }
 
+   /**
+    * Dodaje JWT token u tabelu {@code CRNA_LISTA_TOKENA} radi invalidacije pri odjavi.
+    *
+    * @param token JWT token koji se stavlja na crnu listu
+    * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+    */
    public void dodajUTabeluCrnaLista(String token) {
     String sql = "INSERT INTO CRNA_LISTA_TOKENA (TOKEN, EXPIRES_AT) VALUES (?, CURRENT_TIMESTAMP + 1)"; 
     try (Connection conn = dbManager.getConnection();
@@ -165,6 +207,12 @@ public class UposlenikRepository {
     }
 }
 
+/**
+ * Provjerava da li se JWT token nalazi u tabeli {@code CRNA_LISTA_TOKENA}.
+ *
+ * @param token JWT token koji se provjerava
+ * @return {@code true} ako je token na crnoj listi, inače {@code false}
+ */
 public boolean jeLiTokenUcrnojListi(String token) {
     String sql = "SELECT COUNT(*) FROM CRNA_LISTA_TOKENA WHERE TOKEN = ?";
     try (Connection conn = dbManager.getConnection();
@@ -197,6 +245,16 @@ public boolean jeLiTokenUcrnojListi(String token) {
 
     // ========== HR MODUL  ==========
 
+/**
+ * Atomično kreira novog uposlenika u tabelama {@code nbp.NBP_USER} i {@code UPOSLENIK_PROFIL}
+ * unutar jedne transakcije. U slučaju greške transakcija se poništava (rollback).
+ *
+ * @param request        zahtjev s podacima o novom uposleniku
+ * @param stanicaId      identifikator stanice kojoj uposlenik pripada
+ * @param encodedPassword hashirana lozinka
+ * @return generirani {@code USER_ID} novog uposlenika
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public int insertUposlenik(DodajUposlenikaRequest request, Long stanicaId, String encodedPassword) {
     String sqlUser = "INSERT INTO nbp.NBP_USER (FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, USERNAME, PHONE_NUMBER, BIRTH_DATE, ADDRESS_ID, ROLE_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     String sqlProfil = "INSERT INTO UPOSLENIK_PROFIL (USER_ID, STANICA_ID, BROJ_ZNACKE, STATUS) VALUES (?, ?, ?, 'Aktivan')";
@@ -250,6 +308,13 @@ public int insertUposlenik(DodajUposlenikaRequest request, Long stanicaId, Strin
     }
 }
 
+/**
+ * Ažurira status uposlenika u tabeli {@code UPOSLENIK_PROFIL}.
+ *
+ * @param userId    identifikator korisnika
+ * @param newStatus novi status (npr. {@code "Aktivan"} ili {@code "Neaktivan"})
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public void updateStatus(Long userId, String newStatus) {
     String sql = "UPDATE UPOSLENIK_PROFIL SET STATUS = ? WHERE USER_ID = ?";
     try (Connection conn = dbManager.getConnection();
@@ -262,6 +327,13 @@ public void updateStatus(Long userId, String newStatus) {
     }
 }
 
+/**
+ * Broji aktivne šefove stanice za određenu stanicu.
+ *
+ * @param stanicaId identifikator stanice
+ * @return broj aktivnih šefova stanice
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public int countActiveSefovaPoStanici(Long stanicaId) {
     String sql = "SELECT COUNT(*) FROM nbp.NBP_USER u JOIN nbp.NBP_ROLE r ON u.ROLE_ID = r.ID JOIN UPOSLENIK_PROFIL p ON u.ID = p.USER_ID WHERE p.STANICA_ID = ? AND p.STATUS = 'Aktivan' AND r.NAME = 'SEF_STANICE'";
     try (Connection conn = dbManager.getConnection();
@@ -276,6 +348,13 @@ public int countActiveSefovaPoStanici(Long stanicaId) {
     }
 }
 
+/**
+ * Provjerava da li postoji korisnik s datom e-mail adresom.
+ *
+ * @param email e-mail adresa koja se provjerava
+ * @return {@code true} ako postoji, inače {@code false}
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public boolean existsByEmail(String email) {
     String sql = "SELECT COUNT(*) FROM nbp.NBP_USER WHERE EMAIL = ?";
     try (Connection conn = dbManager.getConnection();
@@ -290,6 +369,13 @@ public boolean existsByEmail(String email) {
     }
 }
 
+/**
+ * Provjerava da li postoji korisnik s datim korisničkim imenom.
+ *
+ * @param username korisničko ime koje se provjerava
+ * @return {@code true} ako postoji, inače {@code false}
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public boolean existsByUsername(String username) {
     String sql = "SELECT COUNT(*) FROM nbp.NBP_USER WHERE USERNAME = ?";
     try (Connection conn = dbManager.getConnection();
@@ -304,6 +390,13 @@ public boolean existsByUsername(String username) {
     }
 }
 
+/**
+ * Provjerava da li postoji uposlenik s datim brojem značke.
+ *
+ * @param brojZnacke broj značke koji se provjerava
+ * @return {@code true} ako postoji, inače {@code false}
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public boolean existsByBrojZnacke(String brojZnacke) {
     String sql = "SELECT COUNT(*) FROM UPOSLENIK_PROFIL WHERE BROJ_ZNACKE = ?";
     try (Connection conn = dbManager.getConnection();
@@ -318,6 +411,14 @@ public boolean existsByBrojZnacke(String brojZnacke) {
     }
 }
 
+/**
+ * Provjerava da li korisnik pripada određenoj stanici.
+ *
+ * @param userId    identifikator korisnika
+ * @param stanicaId identifikator stanice
+ * @return {@code true} ako korisnik pripada stanici, inače {@code false}
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public boolean isUserInStanica(Long userId, Long stanicaId) {
     String sql = "SELECT COUNT(*) FROM UPOSLENIK_PROFIL WHERE USER_ID = ? AND STANICA_ID = ?";
     try (Connection conn = dbManager.getConnection();
@@ -333,6 +434,13 @@ public boolean isUserInStanica(Long userId, Long stanicaId) {
     }
 }
 
+/**
+ * Dohvata naziv uloge korisnika prema identifikatoru.
+ *
+ * @param userId identifikator korisnika
+ * @return naziv uloge, ili {@code null} ako korisnik nije pronađen
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public String getUserRoleName(Long userId) {
     String sql = "SELECT r.NAME FROM nbp.NBP_USER u JOIN nbp.NBP_ROLE r ON u.ROLE_ID = r.ID WHERE u.ID = ?";
     try (Connection conn = dbManager.getConnection();
@@ -347,6 +455,13 @@ public String getUserRoleName(Long userId) {
     }
 }
 
+/**
+ * Dohvata profil uposlenika iz tabele {@code UPOSLENIK_PROFIL} prema identifikatoru korisnika.
+ *
+ * @param userId identifikator korisnika
+ * @return {@link Optional} koji sadrži {@link ba.unsa.etf.suds.model.UposlenikProfil}, ili prazan ako nije pronađen
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public Optional<UposlenikProfil> findProfilByUserId(Long userId) {
     String sql = "SELECT PROFIL_ID, USER_ID, STANICA_ID, BROJ_ZNACKE, STATUS FROM UPOSLENIK_PROFIL WHERE USER_ID = ?";
     try (Connection conn = dbManager.getConnection();
@@ -369,6 +484,15 @@ public Optional<UposlenikProfil> findProfilByUserId(Long userId) {
     }
 }
 
+/**
+ * Provjerava da li postoji drugi korisnik s datom e-mail adresom (isključujući korisnika s datim ID-om).
+ * Koristi se pri ažuriranju profila radi provjere jedinstvenosti e-maila.
+ *
+ * @param email  e-mail adresa koja se provjerava
+ * @param userId identifikator korisnika koji se isključuje iz provjere
+ * @return {@code true} ako drugi korisnik s tim e-mailom postoji, inače {@code false}
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public boolean existsByEmailAndNotUserId(String email, Long userId) {
     String sql = "SELECT COUNT(*) FROM nbp.NBP_USER WHERE EMAIL = ? AND ID != ?";
     try (Connection conn = dbManager.getConnection();
@@ -384,6 +508,15 @@ public boolean existsByEmailAndNotUserId(String email, Long userId) {
     }
 }
 
+/**
+ * Ažurira osnove podatke korisnika (ime, prezime, e-mail) u tabeli {@code nbp.NBP_USER}.
+ *
+ * @param userId  identifikator korisnika
+ * @param ime     novo ime
+ * @param prezime novo prezime
+ * @param email   nova e-mail adresa
+ * @throws RuntimeException ako korisnik nije pronađen ili dođe do greške pri izvršavanju SQL upita
+ */
 public void updateBasicInfo(Long userId, String ime, String prezime, String email) {
     String sql = "UPDATE nbp.NBP_USER SET FIRST_NAME = ?, LAST_NAME = ?, EMAIL = ? WHERE ID = ?";
     
@@ -406,6 +539,13 @@ public void updateBasicInfo(Long userId, String ime, String prezime, String emai
     
 }
 
+/**
+ * Ažurira hashiranu lozinku korisnika u tabeli {@code nbp.NBP_USER}.
+ *
+ * @param userId          identifikator korisnika
+ * @param encodedPassword nova hashirana lozinka
+ * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+ */
 public void updatePassword(Long userId, String encodedPassword) {
     String sql = "UPDATE nbp.NBP_USER SET PASSWORD = ? WHERE ID = ?";
     try (Connection conn = dbManager.getConnection();
@@ -418,6 +558,13 @@ public void updatePassword(Long userId, String encodedPassword) {
     }
 }
 
+/**
+ * Dohvata hashiranu lozinku korisnika prema identifikatoru.
+ *
+ * @param userId identifikator korisnika
+ * @return hashirana lozinka
+ * @throws RuntimeException ako korisnik nije pronađen ili dođe do greške pri izvršavanju SQL upita
+ */
 public String getPasswordByUserId(Long userId) {
     String sql = "SELECT PASSWORD FROM nbp.NBP_USER WHERE ID = ?";
     try (Connection conn = dbManager.getConnection();
