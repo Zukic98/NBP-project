@@ -12,15 +12,40 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+/**
+ * Repozitorij za rad sa tabelom DOKAZ_FOTOGRAFIJE (fotografije dokaza).
+ *
+ * <p>Koristi čisti JDBC bez ORM-a (pravilo predmeta NBP). Svaka metoda
+ * otvara vlastitu konekciju preko {@link DatabaseManager#getConnection()}
+ * i zatvara je kroz try-with-resources. SQLException-i se wrappaju
+ * u RuntimeException sa engleskom porukom.
+ *
+ * <p>Maksimalan broj fotografija po dokazu (10) osiguran je triggerom u bazi.
+ * Jednom dodana fotografija ostaje trajno — nema UPDATE/DELETE operacija.
+ */
 @Repository
 public class DokazFotografijaRepository {
 
     private final DatabaseManager databaseManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public DokazFotografijaRepository(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
+    /**
+     * Sprema fotografiju za dati dokaz u tabelu DOKAZ_FOTOGRAFIJE.
+     * Ako {@code redniBroj} nije proslijeđen, automatski se određuje sljedeći slobodni redni broj.
+     *
+     * @param dokazId   ID dokaza (FK na DOKAZI)
+     * @param file      multipart fajl koji sadrži fotografiju
+     * @param redniBroj željeni redni broj fotografije, ili {@code null} za automatski
+     * @param userId    ID korisnika koji dodaje fotografiju
+     * @param opis      tekstualni opis fotografije
+     * @return sačuvani objekat {@link DokazFotografija} sa generisanim ID-om
+     * @throws IOException       ako dođe do greške pri čitanju sadržaja fajla
+     * @throws RuntimeException  ako dođe do SQL greške
+     */
     /**
      * Spremanje fotografije za dokaz
      * Max 10 fotografija po dokazu (osigurano triggerom u bazi)
@@ -64,6 +89,15 @@ public class DokazFotografijaRepository {
         }
     }
 
+    /**
+     * Učitava sve fotografije za dati dokaz iz tabele DOKAZ_FOTOGRAFIJE.
+     * Vrši JOIN sa {@code nbp.NBP_USER} radi dohvatanja imena korisnika koji je dodao fotografiju.
+     * Fotografije su kodirane u Base64 za slanje frontendu.
+     *
+     * @param dokazId ID dokaza čije se fotografije traže
+     * @return lista DTO objekata sa Base64-enkodiranim fotografijama, sortirana po rednom broju
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     /**
      * Dobavljanje svih fotografija za dokaz
      * Vraća DTO sa Base64 enkodiranim slikama za frontend
@@ -125,6 +159,13 @@ public class DokazFotografijaRepository {
         return 1;
     }
 
+    /**
+     * Broji fotografije za dati dokaz u tabeli DOKAZ_FOTOGRAFIJE.
+     *
+     * @param dokazId ID dokaza
+     * @return broj fotografija, ili 0 ako nema nijedne
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     /**
      * Provjera broja fotografija za dokaz
      */

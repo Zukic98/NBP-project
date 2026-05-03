@@ -9,14 +9,28 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Repozitorij za upravljanje svjedocima iz tabele {@code SVJEDOCI}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class SvjedokRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public SvjedokRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Sprema novog svjedoka koristeći proslijeđenu konekciju.
+     * Namijenjen za upotrebu unutar transakcija kojima upravlja pozivatelj.
+     *
+     * @param conn    aktivna SQL konekcija kojom upravlja pozivatelj
+     * @param svjedok svjedok koji se sprema
+     * @throws SQLException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void saveWithConnection(Connection conn, Svjedok svjedok) throws SQLException {
         String sql = "INSERT INTO Svjedoci (SLUCAJ_ID, IME_PREZIME, JMBG, ADRESA_ID, KONTAKT_TELEFON, BILJESKA) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
@@ -31,6 +45,12 @@ public class SvjedokRepository {
         }
     }
 
+    /**
+     * Dohvata sve svjedoke iz tabele {@code SVJEDOCI}.
+     *
+     * @return lista svih svjedoka
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<Svjedok> findAll() {
         List<Svjedok> svjedoci = new ArrayList<>();
         String sql = "SELECT * FROM Svjedoci";
@@ -56,6 +76,13 @@ public class SvjedokRepository {
         return svjedoci;
     }
 
+    /**
+     * Dohvata svjedoke vezane za određeni slučaj kao DTO s podacima o adresi.
+     *
+     * @param slucajId identifikator slučaja
+     * @return lista {@link ba.unsa.etf.suds.dto.SvjedokDTO} objekata
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<SvjedokDTO> findBySlucajId(Long slucajId) {
         List<SvjedokDTO> svjedoci = new ArrayList<>();
         String sql = "SELECT sv.SVJEDOK_ID, sv.IME_PREZIME, sv.KONTAKT_TELEFON, " +
@@ -87,6 +114,18 @@ public class SvjedokRepository {
         return svjedoci;
     }
 
+    /**
+     * Sprema novog svjedoka u tabelu {@code SVJEDOCI} i vraća generirani primarni ključ.
+     *
+     * @param slucajId       identifikator slučaja
+     * @param imePrezime     ime i prezime svjedoka
+     * @param jmbg           JMBG svjedoka
+     * @param adresaId       identifikator adrese svjedoka
+     * @param kontaktTelefon kontakt telefon svjedoka
+     * @param biljeska       dodatna bilješka
+     * @return generirani {@code SVJEDOK_ID}
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Long save(Long slucajId,
                      String imePrezime,
                      String jmbg,

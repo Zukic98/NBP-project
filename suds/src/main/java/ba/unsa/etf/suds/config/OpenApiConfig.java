@@ -8,10 +8,35 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Konfiguracija SpringDoc OpenAPI (Swagger UI) za SUDS aplikaciju.
+ * <p>
+ * Registruje globalni {@code bearerAuth} JWT sigurnosni shemu koji se
+ * automatski propagira na sve operacije u Swagger UI-u. Korisnik može
+ * unijeti JWT token putem dugmeta <em>Authorize</em> i sve naredne
+ * zahtjeve Swagger UI šalje s odgovarajućim {@code Authorization: Bearer ...}
+ * zaglavljem.
+ * </p>
+ */
 @Configuration
 public class OpenApiConfig {
 
     @Bean
+    /**
+     * Kreira prilagođenu {@link OpenAPI} konfiguraciju s JWT sigurnosnom shemom.
+     * <p>
+     * Definiše:
+     * <ul>
+     *   <li>Metapodatke API-ja (naslov, verzija, opis);</li>
+     *   <li>Globalni sigurnosni zahtjev {@code bearerAuth} koji se primjenjuje
+     *       na sve endpoint-e;</li>
+     *   <li>HTTP Bearer sigurnosnu shemu s formatom {@code JWT} — Swagger UI
+     *       prikazuje polje za unos tokena u dijalogu <em>Authorize</em>.</li>
+     * </ul>
+     * </p>
+     *
+     * @return konfigurisana {@link OpenAPI} instanca
+     */
     public OpenAPI customOpenAPI() {
         final String securitySchemeName = "bearerAuth";
         

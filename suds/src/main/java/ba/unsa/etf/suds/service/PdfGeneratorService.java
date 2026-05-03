@@ -19,9 +19,32 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 
+/**
+ * Servis za generisanje PDF izvještaja o slučajevima.
+ *
+ * <p>Koristi iText 7 biblioteku za kreiranje strukturiranih PDF dokumenata.
+ * Font {@code DejaVuSans.ttf} učitava se s {@code classpath:fonts/} kako bi
+ * se ispravno prikazali bosanski dijakritički znakovi. Servis nema zavisnosti
+ * prema repozitorijima — prima gotov {@link IzvjestajDTO} i vraća sirove
+ * bajtove PDF dokumenta.
+ */
 @Service
 public class PdfGeneratorService {
 
+    /**
+     * Generiše PDF izvještaj za dati slučaj.
+     *
+     * <p>Dokument sadrži sljedeće sekcije (ako postoje podaci):
+     * osnovni podaci o slučaju, krivična djela, tim na slučaju, osumnjičeni
+     * (s fotografijama, max 3 po osobi), svjedoci, forenzički izvještaji,
+     * dokazi (s fotografijama, max 5 po dokazu), lanac nadzora i footer
+     * s datumom generisanja i imenom korisnika.
+     *
+     * @param izvjestaj    DTO koji sadrži sve sekcije izvještaja
+     * @param generisaoIme puno ime korisnika koji generiše izvještaj (za footer)
+     * @return niz bajtova koji predstavlja generisani PDF dokument
+     * @throws RuntimeException ako dođe do greške pri generisanju PDF-a
+     */
     public byte[] generatePdf(IzvjestajDTO izvjestaj, String generisaoIme) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();

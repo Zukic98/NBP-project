@@ -17,6 +17,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST kontroler za upravljanje dokazima vezanim za slučajeve.
+ *
+ * <p>Bazna putanja: {@code /api}. Pruža operacije za dohvat, kreiranje i ažuriranje
+ * dokaza, kao i pregled lanca nadzora. Delegira sve operacije servisu {@code DokazService}.
+ * Identitet korisnika se čita iz {@code SecurityContextHolder} (principal = userId kao String).
+ */
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Dokazi", description = "Upravljanje dokazima")
@@ -24,10 +31,18 @@ public class DokazController {
 
     private final DokazService dokazService;
 
+    /** Konstruktorska injekcija servisa za dokaze. */
     public DokazController(DokazService dokazService) {
         this.dokazService = dokazService;
     }
 
+    /**
+     * GET /api/slucajevi/{caseId}/dokazi - dohvata sve dokaze za određeni slučaj.
+     *
+     * @param caseId identifikator slučaja
+     * @return 200 + lista {@link DokazListDTO} za dati slučaj,
+     *         500 pri grešci na serveru
+     */
     @GetMapping("/slucajevi/{caseId}/dokazi")
     @Operation(summary = "Dohvati dokaze za slučaj")
     @ApiResponses(value = {
@@ -42,6 +57,17 @@ public class DokazController {
         }
     }
 
+    /**
+     * POST /api/slucajevi/{caseId}/dokazi - kreira novi dokaz za određeni slučaj.
+     *
+     * <p>Identitet kreatora se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @param caseId  identifikator slučaja
+     * @param request tijelo zahtjeva sa podacima novog dokaza
+     * @return 201 + kreirani {@link DokazListDTO},
+     *         404 ako slučaj nije pronađen,
+     *         500 pri grešci na serveru
+     */
     @PostMapping("/slucajevi/{caseId}/dokazi")
     @Operation(summary = "Kreiraj novi dokaz za slučaj")
     @ApiResponses(value = {
@@ -67,6 +93,16 @@ public class DokazController {
         }
     }
 
+    /**
+     * GET /api/dokazi/{id}/stanje - dohvata trenutno stanje dokaza.
+     *
+     * <p>Identitet korisnika se čita iz {@code SecurityContextHolder} (principal = userId).
+     *
+     * @param dokazId identifikator dokaza
+     * @return 200 + {@link DokazStanjeDTO} sa stanjem dokaza,
+     *         404 ako dokaz nije pronađen,
+     *         500 pri grešci na serveru
+     */
     @GetMapping("/dokazi/{id}/stanje")
     @Operation(summary = "Dohvati stanje dokaza")
     @ApiResponses(value = {
@@ -89,6 +125,13 @@ public class DokazController {
         }
     }
 
+    /**
+     * GET /api/dokazi/{id}/lanac - dohvata kompletan lanac nadzora za dokaz.
+     *
+     * @param dokazId identifikator dokaza
+     * @return 200 + mapa sa ključem {@code "lanac"} i listom {@link LanacDetaljiDTO},
+     *         500 pri grešci na serveru
+     */
     @GetMapping("/dokazi/{id}/lanac")
     @Operation(summary = "Dohvati lanac nadzora za dokaz")
     @ApiResponses(value = {
@@ -104,6 +147,15 @@ public class DokazController {
         }
     }
 
+    /**
+     * PATCH /api/dokazi/{id}/status - ažurira status dokaza.
+     *
+     * @param dokazId identifikator dokaza
+     * @param request tijelo zahtjeva sa novim statusom
+     * @return 200 + poruka o uspješnom ažuriranju,
+     *         404 ako dokaz nije pronađen,
+     *         500 pri grešci na serveru
+     */
     @PatchMapping("/dokazi/{id}/status")
     @Operation(summary = "Ažuriraj status dokaza")
     @ApiResponses(value = {

@@ -12,16 +12,30 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST kontroler za upravljanje krivičnim djelima na konkretnom slučaju.
+ *
+ * <p>Bazna putanja: {@code /api/slucajevi/{slucajId}/krivicna-djela}. Pruža operacije
+ * za dohvat, dodavanje (pojedinačno i grupno) i uklanjanje krivičnih djela sa slučaja.
+ * Delegira sve operacije servisu {@code SlucajKrivicnoDjeloService}.
+ */
 @RestController
 @RequestMapping("/api/slucajevi/{slucajId}/krivicna-djela")
 @Tag(name = "Krivična djela na slučaju", description = "Upravljanje krivičnim djelima na konkretnom slučaju")
 public class SlucajKrivicnoDjeloController {
     private final SlucajKrivicnoDjeloService service;
 
+    /** Konstruktorska injekcija servisa za krivična djela na slučaju. */
     public SlucajKrivicnoDjeloController(SlucajKrivicnoDjeloService service) {
         this.service = service;
     }
 
+    /**
+     * GET /api/slucajevi/{slucajId}/krivicna-djela - dohvata sva krivična djela za slučaj.
+     *
+     * @param slucajId identifikator slučaja
+     * @return 200 + lista {@link SlucajKrivicnoDjelo} za dati slučaj
+     */
     @GetMapping
     @Operation(summary = "Dohvati sva krivična djela za slučaj")
     @ApiResponse(responseCode = "200", description = "Lista krivičnih djela vraćena")
@@ -29,6 +43,15 @@ public class SlucajKrivicnoDjeloController {
         return ResponseEntity.ok(service.getDjelaZaSlucaj(slucajId));
     }
 
+    /**
+     * POST /api/slucajevi/{slucajId}/krivicna-djela - dodaje jedno krivično djelo na slučaj.
+     *
+     * @param slucajId identifikator slučaja
+     * @param body     mapa sa ključem {@code djeloId} koji sadrži ID krivičnog djela
+     * @return 201 + kreirani {@link SlucajKrivicnoDjelo},
+     *         400 ako su podaci nevalidni,
+     *         409 ako veza već postoji
+     */
     @PostMapping
     @Operation(summary = "Dodaj krivično djelo na slučaj")
     @ApiResponses(value = {
@@ -43,6 +66,14 @@ public class SlucajKrivicnoDjeloController {
         return ResponseEntity.status(201).body(service.dodajDjeloNaSlucaj(slucajId, djeloId));
     }
 
+    /**
+     * POST /api/slucajevi/{slucajId}/krivicna-djela/batch - dodaje više krivičnih djela na slučaj odjednom.
+     *
+     * @param slucajId identifikator slučaja
+     * @param body     mapa sa ključem {@code djeloIds} koji sadrži listu ID-ova krivičnih djela
+     * @return 201 bez sadržaja ako su sva krivična djela uspješno dodana,
+     *         400 ako su podaci nevalidni
+     */
     @PostMapping("/batch")
     @Operation(summary = "Dodaj više krivičnih djela na slučaj odjednom")
     @ApiResponses(value = {
@@ -57,6 +88,14 @@ public class SlucajKrivicnoDjeloController {
         return ResponseEntity.status(201).build();
     }
 
+    /**
+     * DELETE /api/slucajevi/{slucajId}/krivicna-djela/{vezaId} - uklanja krivično djelo sa slučaja.
+     *
+     * @param slucajId identifikator slučaja
+     * @param vezaId   identifikator veze između slučaja i krivičnog djela
+     * @return 204 bez sadržaja,
+     *         404 ako veza nije pronađena
+     */
     @DeleteMapping("/{vezaId}")
     @Operation(summary = "Ukloni krivično djelo sa slučaja")
     @ApiResponses(value = {

@@ -10,14 +10,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za upravljanje policijskim stanicama iz tabele {@code STANICE}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class StanicaRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public StanicaRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Dohvata sve policijske stanice iz tabele {@code STANICE}.
+     *
+     * @return lista svih stanica
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<Stanica> findAll() {
         List<Stanica> stanice = new ArrayList<>();
         String sql = "SELECT * FROM STANICE";
@@ -40,6 +52,13 @@ public class StanicaRepository {
         return stanice;
     }
 
+    /**
+     * Dohvata stanicu prema identifikatoru.
+     *
+     * @param id identifikator stanice
+     * @return {@link Optional} koji sadrži stanicu, ili prazan ako nije pronađena
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Optional<Stanica> findById(Long id) {
         String sql = "SELECT * FROM STANICE WHERE STANICA_ID = ?";
         try (Connection conn = dbManager.getConnection();
@@ -62,6 +81,15 @@ public class StanicaRepository {
         return Optional.empty();
     }
 
+    /**
+     * Atomično registruje novu stanicu zajedno s adresom i šefom stanice u jednoj transakciji.
+     * Kreira redove u tabelama {@code ADRESE}, {@code STANICE}, {@code nbp.NBP_USER} i {@code UPOSLENIK_PROFIL}.
+     * U slučaju greške transakcija se poništava (rollback).
+     *
+     * @param req       zahtjev za registraciju koji sadrži podatke o stanici, adresi i šefu
+     * @param roleIdSef identifikator uloge šefa stanice
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void registerStanicaITips(RegistrationRequest req, Long roleIdSef) {
     Connection conn = null;
     try {

@@ -9,14 +9,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za upravljanje krivičnim djelima iz tabele {@code KRIVICNA_DJELA}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class KrivicnoDjeloRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public KrivicnoDjeloRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Dohvata sva krivična djela iz tabele {@code KRIVICNA_DJELA}.
+     *
+     * @return lista svih krivičnih djela
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<KrivicnoDjelo> findAll() {
         List<KrivicnoDjelo> djela = new ArrayList<>();
         String sql = "SELECT * FROM KRIVICNA_DJELA";
@@ -39,6 +51,13 @@ public class KrivicnoDjeloRepository {
         return djela;
     }
 
+    /**
+     * Dohvata krivično djelo po primarnom ključu.
+     *
+     * @param id identifikator krivičnog djela ({@code DJELO_ID})
+     * @return {@link Optional} sa pronađenim djelom, ili prazan ako ne postoji
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Optional<KrivicnoDjelo> findById(Long id) {
         // Popravljeno: u bazi se kolona zove DJELO_ID, a ne id
         String sql = "SELECT * FROM KRIVICNA_DJELA WHERE DJELO_ID = ?";
@@ -65,6 +84,14 @@ public class KrivicnoDjeloRepository {
     }
 
 
+/**
+     * Sprema novo krivično djelo u tabelu {@code KRIVICNA_DJELA} i vraća entitet sa generisanim ID-om.
+     * Izvršava se unutar eksplicitne transakcije.
+     *
+     * @param djelo krivično djelo koje se sprema
+     * @return sačuvano krivično djelo sa postavljenim {@code id}-om
+     * @throws RuntimeException ako kreiranje nije uspjelo ili nije dobijen generisani ključ
+     */
 public KrivicnoDjelo save(KrivicnoDjelo djelo) {
     String sql = "INSERT INTO KRIVICNA_DJELA (NAZIV, KATEGORIJA, KAZNENI_ZAKON_CLAN) VALUES (?, ?, ?)";
     
@@ -108,6 +135,13 @@ public KrivicnoDjelo save(KrivicnoDjelo djelo) {
     }
 }
 
+    /**
+     * Ažurira postojeće krivično djelo u tabeli {@code KRIVICNA_DJELA}.
+     *
+     * @param djelo krivično djelo sa ažuriranim podacima (mora imati postavljen {@code id})
+     * @return ažurirano krivično djelo
+     * @throws RuntimeException ako djelo nije pronađeno ili dođe do SQL greške
+     */
     public KrivicnoDjelo update(KrivicnoDjelo djelo) {
         String sql = "UPDATE KRIVICNA_DJELA SET NAZIV = ?, KATEGORIJA = ?, KAZNENI_ZAKON_CLAN = ? WHERE DJELO_ID = ?";
         
@@ -132,6 +166,12 @@ public KrivicnoDjelo save(KrivicnoDjelo djelo) {
         }
     }
 
+    /**
+     * Briše krivično djelo iz tabele {@code KRIVICNA_DJELA} po ID-u.
+     *
+     * @param id identifikator krivičnog djela koje se briše
+     * @throws RuntimeException ako djelo nije pronađeno ili dođe do SQL greške
+     */
     public void deleteById(Long id) {
         String sql = "DELETE FROM KRIVICNA_DJELA WHERE DJELO_ID = ?";
         
@@ -151,6 +191,14 @@ public KrivicnoDjelo save(KrivicnoDjelo djelo) {
         }
 }
 
+/**
+     * Provjerava da li krivično djelo sa datim nazivom i članom kaznenog zakona već postoji u bazi.
+     *
+     * @param naziv naziv krivičnog djela
+     * @param kazneniZakonClan član kaznenog zakona
+     * @return {@code true} ako duplikat postoji, {@code false} inače
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
 /**
  * Provjerava da li krivično djelo sa istim nazivom i članom već postoji
  */

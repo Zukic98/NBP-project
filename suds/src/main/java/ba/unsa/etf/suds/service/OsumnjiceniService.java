@@ -13,12 +13,21 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * Servis za upravljanje osumnjičenim osobama u sistemu.
+ *
+ * <p>Orkestrira {@link OsumnjiceniRepository} i {@link AdresaRepository} kako bi
+ * atomično kreirao adresu i osumnjičenog unutar iste JDBC transakcije, te ih
+ * povezao s odgovarajućim slučajem. Sve operacije koje mijenjaju više tabela
+ * izvršavaju se ručno upravljanom transakcijom (setAutoCommit/commit/rollback).
+ */
 @Service
 public class OsumnjiceniService {
     private final OsumnjiceniRepository osumnjiceniRepository;
     private final AdresaRepository adresaRepository;
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija repozitorija osumnjičenih, adresa i menadžera konekcija. */
     public OsumnjiceniService(OsumnjiceniRepository osumnjiceniRepository,
                               AdresaRepository adresaRepository,
                               DatabaseManager dbManager) {
@@ -27,14 +36,38 @@ public class OsumnjiceniService {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Dohvata listu svih osumnjičenih u sistemu.
+     *
+     * @return lista svih {@link Osumnjiceni} zapisa iz baze
+     */
     public List<Osumnjiceni> getAllOsumnjiceni() {
         return osumnjiceniRepository.findAll();
     }
 
+    /**
+     * Dohvata listu osumnjičenih vezanih za određeni slučaj.
+     *
+     * @param slucajId identifikator slučaja
+     * @return lista {@link OsumnjiceniDTO} objekata za dati slučaj
+     */
     public List<OsumnjiceniDTO> getOsumnjiceniBySlucajId(Long slucajId) {
     return osumnjiceniRepository.findBySlucajId(slucajId);
 }
 
+    /**
+     * Atomično kreira adresu i osumnjičenog te ih vezuje za dati slučaj.
+     *
+     * <p>Operacija se izvršava unutar ručno upravljane JDBC transakcije:
+     * najprije se upisuje adresa, zatim osumnjičeni, a potom se kreira veza
+     * u tabeli {@code SLUCAJ_OSUMNJICENI}. U slučaju greške transakcija se
+     * poništava (rollback).
+     *
+     * @param slucajId identifikator slučaja na koji se osumnjičeni vezuje
+     * @param request  podaci o osumnjičenom i njegovoj adresi
+     * @return kreirani {@link Osumnjiceni} objekat s dodijeljenim ID-om
+     * @throws RuntimeException ako dođe do greške u JDBC transakciji
+     */
     public Osumnjiceni dodajOsumnjicenog(Long slucajId, DodajOsumnjicenogRequest request) {
         Connection conn = null;
         try {

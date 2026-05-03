@@ -12,14 +12,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za upravljanje slučajevima iz tabele {@code SLUCAJEVI}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class SlucajRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public SlucajRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Sprema novi slučaj u tabelu {@code SLUCAJEVI}.
+     *
+     * @param slucaj slučaj koji se sprema
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // CREATE
     public void save(Slucaj slucaj) {
         String sql = "INSERT INTO SLUCAJEVI (STANICA_ID, BROJ_SLUCAJA, OPIS, STATUS, VODITELJ_USER_ID, DATUM_KREIRANJA) VALUES (?, ?, ?, ?, ?, ?)";
@@ -37,6 +49,12 @@ public class SlucajRepository {
         }
     }
 
+    /**
+     * Dohvata sve slučajeve iz tabele {@code SLUCAJEVI}.
+     *
+     * @return lista svih slučajeva
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // READ ALL
     public List<Slucaj> findAll() {
         List<Slucaj> slucajevi = new ArrayList<>();
@@ -53,6 +71,13 @@ public class SlucajRepository {
         return slucajevi;
     }
 
+    /**
+     * Dohvata slučaj prema identifikatoru.
+     *
+     * @param id identifikator slučaja
+     * @return {@link Optional} koji sadrži slučaj, ili prazan ako nije pronađen
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // READ BY ID
     public Optional<Slucaj> findById(Long id) {
         String sql = "SELECT * FROM SLUCAJEVI WHERE SLUCAJ_ID = ?";
@@ -70,6 +95,12 @@ public class SlucajRepository {
         return Optional.empty();
     }
 
+    /**
+     * Ažurira opis, status i voditelja slučaja u tabeli {@code SLUCAJEVI}.
+     *
+     * @param slucaj slučaj s novim podacima
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // UPDATE
     public void update(Slucaj slucaj) {
         String sql = "UPDATE SLUCAJEVI SET OPIS = ?, STATUS = ?, VODITELJ_USER_ID = ? WHERE SLUCAJ_ID = ?";
@@ -85,6 +116,12 @@ public class SlucajRepository {
         }
     }
 
+    /**
+     * Briše slučaj iz tabele {@code SLUCAJEVI} prema identifikatoru.
+     *
+     * @param id identifikator slučaja koji se briše
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // DELETE
     public void delete(Long id) {
         String sql = "DELETE FROM SLUCAJEVI WHERE SLUCAJ_ID = ?";
@@ -97,6 +134,13 @@ public class SlucajRepository {
         }
     }
 
+    /**
+     * Dohvata detalje slučaja kao DTO putem JOIN-a s tabelama osumnjičenih i krivičnih djela.
+     *
+     * @param brojSlucaja broj slučaja koji se traži
+     * @return popunjeni {@link ba.unsa.etf.suds.dto.SlucajDetaljiDTO}
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // COMPLEX READ FOR DTO
     public SlucajDetaljiDTO findDetaljiByBroj(String brojSlucaja) {
         SlucajDetaljiDTO dto = new SlucajDetaljiDTO();
@@ -136,6 +180,15 @@ public class SlucajRepository {
         return dto;
     }
 
+    /**
+     * Sprema novi slučaj koristeći proslijeđenu konekciju i vraća generirani primarni ključ.
+     * Namijenjen za upotrebu unutar transakcija kojima upravlja pozivatelj.
+     *
+     * @param conn   aktivna SQL konekcija kojom upravlja pozivatelj
+     * @param slucaj slučaj koji se sprema
+     * @return generirani {@code SLUCAJ_ID}
+     * @throws SQLException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Long saveWithConnection(Connection conn, Slucaj slucaj) throws SQLException {
         String sql = "INSERT INTO SLUCAJEVI (STANICA_ID, BROJ_SLUCAJA, OPIS, STATUS, VODITELJ_USER_ID, DATUM_KREIRANJA) " +
                      "VALUES (?, ?, ?, ?, ?, ?)";
@@ -158,6 +211,16 @@ public class SlucajRepository {
         }
     }
 
+    /**
+     * Dohvata filtrirani spisak slučajeva kao DTO ovisno o ulozi korisnika.
+     * Šef stanice vidi sve slučajeve svoje stanice; ostali vide samo slučajeve
+     * na kojima su voditelji ili članovi tima.
+     *
+     * @param userId   identifikator korisnika
+     * @param roleName naziv uloge korisnika
+     * @return lista {@link ba.unsa.etf.suds.dto.SlucajListDTO} objekata
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<SlucajListDTO> findAllFiltered(Long userId, String roleName) {
         List<SlucajListDTO> rezultat = new ArrayList<>();
         String sql;
@@ -195,6 +258,13 @@ public class SlucajRepository {
         return rezultat;
     }
 
+    /**
+     * Dohvata slučaj s imenom voditelja kao DTO prema identifikatoru.
+     *
+     * @param id identifikator slučaja
+     * @return {@link Optional} koji sadrži {@link ba.unsa.etf.suds.dto.SlucajListDTO}, ili prazan ako nije pronađen
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Optional<SlucajListDTO> findByIdWithVoditelj(Long id) {
         String sql = "SELECT s.SLUCAJ_ID, s.BROJ_SLUCAJA, s.OPIS, s.STATUS, s.DATUM_KREIRANJA, " +
                 "(u.FIRST_NAME || ' ' || u.LAST_NAME) AS VODITELJ " +
@@ -217,6 +287,14 @@ public class SlucajRepository {
         return Optional.empty();
     }
 
+    /**
+     * Ažurira status slučaja u tabeli {@code SLUCAJEVI}.
+     *
+     * @param id     identifikator slučaja
+     * @param status novi status
+     * @return {@code true} ako je ažuriran barem jedan red, inače {@code false}
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public boolean updateStatus(Long id, String status) {
         String sql = "UPDATE SLUCAJEVI SET STATUS = ? WHERE SLUCAJ_ID = ?";
 
@@ -230,6 +308,16 @@ public class SlucajRepository {
         }
     }
 
+    /**
+     * Dohvata slučajeve korisnika s ulogom na slučaju kao DTO.
+     * Inspektori i šefovi vide slučajeve na kojima su voditelji ili članovi tima;
+     * ostale uloge vide samo slučajeve na kojima su članovi tima.
+     *
+     * @param userId   identifikator korisnika
+     * @param roleName naziv uloge korisnika
+     * @return lista {@link ba.unsa.etf.suds.dto.MojSlucajDTO} objekata
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<MojSlucajDTO> findMojiSlucajevi(Long userId, String roleName) {
         List<MojSlucajDTO> rezultat = new ArrayList<>();
         String sql;

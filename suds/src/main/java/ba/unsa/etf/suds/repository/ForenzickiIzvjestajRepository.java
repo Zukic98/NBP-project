@@ -6,15 +6,31 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 
+/**
+ * Repozitorij za rad sa tabelom FORENZICKI_IZVJESTAJI (forenzički izvještaji).
+ *
+ * <p>Koristi čisti JDBC bez ORM-a (pravilo predmeta NBP). Svaka metoda
+ * otvara vlastitu konekciju preko {@link DatabaseManager#getConnection()}
+ * i zatvara je kroz try-with-resources. SQLException-i se wrappaju
+ * u RuntimeException sa engleskom porukom.
+ */
 @Repository
 public class ForenzickiIzvjestajRepository {
 
     private final DatabaseManager databaseManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public ForenzickiIzvjestajRepository(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
+    /**
+     * Dohvata zaključak najnovijeg forenzičkog izvještaja za dati dokaz.
+     *
+     * @param dokazId ID dokaza
+     * @return tekst zaključka, ili {@code null} ako nema izvještaja
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public String findZakljucakByDokazId(Long dokazId) {
         String sql = "SELECT zakljucak FROM Forenzicki_Izvjestaji WHERE dokaz_id = ? ORDER BY datum_kreiranja DESC";
 
@@ -33,6 +49,13 @@ public class ForenzickiIzvjestajRepository {
         }
     }
 
+    /**
+     * Dohvata kompletan forenzički izvještaj za dati dokaz (najnoviji po datumu kreiranja).
+     *
+     * @param dokazId ID dokaza
+     * @return objekat izvještaja ako postoji, ili {@code null}
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public ForenzickiIzvjestaj findByDokazId(Long dokazId) {
         String sql = "SELECT izvjestaj_id, dokaz_id, kreator_user_id, sadrzaj, zakljucak, datum_kreiranja " +
                      "FROM Forenzicki_Izvjestaji WHERE dokaz_id = ? ORDER BY datum_kreiranja DESC";
@@ -61,6 +84,14 @@ public class ForenzickiIzvjestajRepository {
         }
     }
 
+    /**
+     * Sprema novi forenzički izvještaj u tabelu FORENZICKI_IZVJESTAJI.
+     * Automatski postavlja {@code datumKreiranja} na trenutno vrijeme.
+     *
+     * @param izvjestaj objekat izvještaja koji se sprema
+     * @return isti objekat sa postavljenim {@code datumKreiranja}
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public ForenzickiIzvjestaj save(ForenzickiIzvjestaj izvjestaj) {
         String sql = "INSERT INTO Forenzicki_Izvjestaji (dokaz_id, kreator_user_id, sadrzaj, zakljucak, datum_kreiranja) " +
                      "VALUES (?, ?, ?, ?, ?)";
@@ -84,6 +115,13 @@ public class ForenzickiIzvjestajRepository {
         }
     }
 
+    /**
+     * Ažurira sadržaj i zaključak postojećeg forenzičkog izvještaja.
+     *
+     * @param izvjestaj objekat sa postavljenim {@code izvjestajId}, {@code sadrzaj} i {@code zakljucak}
+     * @return isti objekat nakon ažuriranja
+     * @throws RuntimeException ako dođe do SQL greške
+     */
     public ForenzickiIzvjestaj update(ForenzickiIzvjestaj izvjestaj) {
     String sql = "UPDATE Forenzicki_Izvjestaji SET sadrzaj = ?, zakljucak = ? WHERE izvjestaj_id = ?";
 

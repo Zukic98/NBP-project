@@ -9,14 +9,28 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Repozitorij za upravljanje članovima tima na slučaju iz tabele {@code TIM_NA_SLUCAJU}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class TimNaSlucajuRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public TimNaSlucajuRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Sprema dodjelu člana tima koristeći proslijeđenu konekciju.
+     * Namijenjen za upotrebu unutar transakcija kojima upravlja pozivatelj.
+     *
+     * @param conn aktivna SQL konekcija kojom upravlja pozivatelj
+     * @param tim  dodjela člana tima koja se sprema
+     * @throws SQLException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void saveWithConnection(Connection conn, TimNaSlucaju tim) throws SQLException {
         String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU) VALUES (?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -27,6 +41,13 @@ public class TimNaSlucajuRepository {
         }
     }
 
+    /**
+     * Dohvata sve članove tima za određeni slučaj kao DTO s podacima o korisniku i ulozi.
+     *
+     * @param caseId identifikator slučaja
+     * @return lista {@link ba.unsa.etf.suds.dto.TimClanDTO} objekata
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<TimClanDTO> findByCaseId(Long caseId) {
         List<TimClanDTO> clanovi = new ArrayList<>();
         String sql = "SELECT t.DODJELA_ID, t.USER_ID, (u.FIRST_NAME||' '||u.LAST_NAME) AS IME_PREZIME, " +
@@ -61,6 +82,13 @@ public class TimNaSlucajuRepository {
         return clanovi;
     }
 
+    /**
+     * Sprema dodjelu člana tima u tabelu {@code TIM_NA_SLUCAJU} i vraća generirani primarni ključ.
+     *
+     * @param tim dodjela člana tima koja se sprema
+     * @return generirani {@code DODJELA_ID}
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Long save(TimNaSlucaju tim) {
         String sql = "INSERT INTO TIM_NA_SLUCAJU (SLUCAJ_ID, USER_ID, ULOGA_NA_SLUCAJU) VALUES (?, ?, ?)";
         try (Connection conn = dbManager.getConnection();
@@ -84,6 +112,12 @@ public class TimNaSlucajuRepository {
         }
     }
 
+    /**
+     * Briše dodjelu člana tima iz tabele {@code TIM_NA_SLUCAJU} prema identifikatoru dodjele.
+     *
+     * @param id identifikator dodjele koja se briše
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void deleteById(Long id) {
         String sql = "DELETE FROM TIM_NA_SLUCAJU WHERE DODJELA_ID=?";
         try (Connection conn = dbManager.getConnection();

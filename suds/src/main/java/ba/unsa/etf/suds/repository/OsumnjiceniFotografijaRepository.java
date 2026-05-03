@@ -12,15 +12,33 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+/**
+ * Repozitorij za upravljanje fotografijama osumnjičenih iz tabele {@code OSUMNJICENI_FOTOGRAFIJE}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class OsumnjiceniFotografijaRepository {
 
     private final DatabaseManager databaseManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public OsumnjiceniFotografijaRepository(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
     }
 
+    /**
+     * Sprema fotografiju osumnjičenog u tabelu {@code OSUMNJICENI_FOTOGRAFIJE}.
+     * Maksimalan broj fotografija po osumnjičenom (3) osiguran je triggerom u bazi.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @param file          fajl fotografije koji se sprema
+     * @param redniBroj     redni broj fotografije; ako je {@code null}, automatski se određuje
+     * @param userId        identifikator korisnika koji dodaje fotografiju
+     * @param opis          opis fotografije
+     * @return sačuvana fotografija sa generisanim ID-om
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     /**
      * Spremanje fotografije za osumnjičenog
      * Max 3 fotografije po osumnjičenom (osigurano triggerom u bazi)
@@ -63,6 +81,13 @@ public class OsumnjiceniFotografijaRepository {
         }
     }
 
+    /**
+     * Dohvata sve fotografije za datog osumnjičenog sa JOIN-om na korisnike koji su ih dodali/izmijenili.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @return lista DTO-ova sa podacima o fotografijama (uključujući Base64 sadržaj)
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     /**
      * Dobavljanje svih fotografija za osumnjičenog
      */
@@ -113,6 +138,15 @@ public class OsumnjiceniFotografijaRepository {
     }
 
     /**
+     * Ažurira sadržaj i metapodatke fotografije osumnjičenog.
+     *
+     * @param fotografijaId identifikator fotografije koja se ažurira
+     * @param file          novi fajl fotografije
+     * @param userId        identifikator korisnika koji vrši izmjenu
+     * @param opis          novi opis fotografije
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
+    /**
      * Ažuriranje fotografije osumnjičenog (dozvoljeno)
      */
     public void update(Long fotografijaId, MultipartFile file, Long userId, String opis) throws IOException {
@@ -136,6 +170,12 @@ public class OsumnjiceniFotografijaRepository {
         }
     }
 
+    /**
+     * Briše fotografiju osumnjičenog iz tabele {@code OSUMNJICENI_FOTOGRAFIJE} po ID-u.
+     *
+     * @param fotografijaId identifikator fotografije koja se briše
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     /**
      * Brisanje fotografije osumnjičenog (dozvoljeno)
      */
@@ -163,6 +203,13 @@ public class OsumnjiceniFotografijaRepository {
         return 1;
     }
 
+    /**
+     * Broji fotografije za datog osumnjičenog.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @return broj fotografija u tabeli {@code OSUMNJICENI_FOTOGRAFIJE} za datog osumnjičenog
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public int countByOsumnjiceniId(Long osumnjiceniId) {
         String sql = "SELECT COUNT(*) FROM OSUMNJICENI_FOTOGRAFIJE WHERE OSUMNJICENI_ID = ?";
         try (Connection conn = databaseManager.getConnection();

@@ -21,6 +21,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Servis za upravljanje krivičnim slučajevima.
+ *
+ * <p>Orkestrira {@link SlucajRepository}, {@link AdresaRepository},
+ * {@link TimNaSlucajuRepository}, {@link IzvjestajRepository},
+ * {@link PdfGeneratorService} i {@link DokazRepository} kako bi podržao
+ * kompletan životni ciklus slučaja: kreiranje, pregled, ažuriranje statusa
+ * i generisanje PDF izvještaja. Kreiranje slučaja izvršava se unutar ručno
+ * upravljane JDBC transakcije.
+ */
 @Service
 public class SlucajService {
     private final SlucajRepository slucajRepository;
@@ -31,6 +41,7 @@ public class SlucajService {
     private final IzvjestajRepository izvjestajRepository;
     private final DokazRepository dokazRepository;
 
+    /** Konstruktorska injekcija repozitorija slučajeva, adresa, tima, izvještaja, PDF generatora i dokaza. */
     // Ažuriraj konstruktor da uključi nove zavisnosti
     public SlucajService(SlucajRepository slucajRepository,
                          AdresaRepository adresaRepository,
@@ -48,6 +59,20 @@ public class SlucajService {
         this.dokazRepository = dokazRepository;
     }
 
+    /**
+     * Generiše PDF izvještaj za dati slučaj i sprema ga u bazu.
+     *
+     * <p>Dohvata sve sekcije izvještaja (krivična djela, tim, osumnjičeni s fotografijama,
+     * svjedoci, dokazi s fotografijama, lanac nadzora, forenzički izvještaji) putem
+     * {@link IzvjestajRepository}, delegira generisanje PDF-a servisu {@link PdfGeneratorService},
+     * a zatim sprema generisani dokument u tabelu {@code IZVJESTAJI_SLUCAJEVA}.
+     *
+     * @param slucajId identifikator slučaja za koji se generiše izvještaj
+     * @param userId   identifikator korisnika koji generiše izvještaj (za footer i zapis)
+     * @return niz bajtova generisanog PDF dokumenta
+     * @throws IllegalArgumentException ako slučaj s datim ID-om ne postoji
+     * @throws RuntimeException         ako dođe do greške pri generisanju PDF-a
+     */
     public byte[] generatePdfReport(Long slucajId, Long userId) {
         // Dohvati sve podatke za izvještaj
         Optional<IzvjestajDTO.SlucajInfo> slucajInfo = izvjestajRepository.findSlucajInfo(slucajId);
@@ -109,10 +134,28 @@ public class SlucajService {
         return "Nepoznat korisnik";
     }
 
+    /**
+     * Dohvata detalje slučaja prema broju slučaja.
+     *
+     * @param brojSlucaja jedinstveni broj slučaja (npr. "SL-2024-001")
+     * @return {@link SlucajDetaljiDTO} s kompletnim podacima o slučaju
+     */
     public SlucajDetaljiDTO getSlucajDetalji(String brojSlucaja) {
         return slucajRepository.findDetaljiByBroj(brojSlucaja);
     }
 
+    /**
+     * Atomično kreira adresu, slučaj i tim na slučaju unutar jedne JDBC transakcije.
+     *
+     * <p>Novi slučaj dobiva inicijalni status {@code "Otvoren"}. Ako je u zahtjevu
+     * proslijeđen tim, svaki član se dodaje u tabelu {@code TIM_NA_SLUCAJU}.
+     * U slučaju greške transakcija se poništava (rollback).
+     *
+     * @param request        podaci za kreiranje slučaja (adresa, broj, opis, tim)
+     * @param voditeljUserId ID korisnika koji postaje voditelj slučaja
+     * @return {@link SlucajListDTO} s podacima o kreiranom slučaju i voditelju
+     * @throws RuntimeException ako dođe do greške u JDBC transakciji
+     */
     public SlucajListDTO kreirajSlucaj(KreirajSlucajRequest request, Long voditeljUserId) {
         Connection conn = null;
         try {
@@ -172,18 +215,56 @@ public class SlucajService {
         }
     }
 
+    /**
+     * Dohvata slučajeve na kojima je korisnik direktno angažovan (voditelj ili član tima).
+     *
+     * <p>Za razliku od {@link #getSlucajeviFiltered}, ova metoda vraća {@link MojSlucajDTO}
+     * koji uključuje ulogu korisnika na slučaju.
+     *
+     * @param userId   identifikator korisnika
+     * @param roleName naziv sistemske uloge korisnika (npr. {@code "INSPEKTOR"})
+     * @return lista {@link MojSlucajDTO} objekata za datog korisnika
+     */
     public List<MojSlucajDTO> getMojiSlucajevi(Long userId, String roleName) {
         return slucajRepository.findMojiSlucajevi(userId, roleName);
     }
 
+    /**
+     * Dohvata filtrirani spisak slučajeva prema ulozi korisnika.
+     *
+     * <p>Filtriranje se vrši na nivou repozitorija — npr. {@code SEF_STANICE} vidi
+     * sve slučajeve svoje stanice, dok {@code INSPEKTOR} vidi samo slučajeve na
+     * kojima je voditelj ili član tima.
+     *
+     * @param userId   identifikator korisnika
+     * @param roleName naziv sistemske uloge korisnika
+     * @return lista {@link SlucajListDTO} objekata prema pravilima filtriranja
+     */
     public List<SlucajListDTO> getSlucajeviFiltered(Long userId, String roleName) {
         return slucajRepository.findAllFiltered(userId, roleName);
     }
 
+    /**
+     * Dohvata slučaj prema internom ID-u.
+     *
+     * @param id interni identifikator slučaja
+     * @return {@link Optional} s {@link SlucajListDTO} ako slučaj postoji
+     */
     public Optional<SlucajListDTO> getSlucajById(Long id) {
         return slucajRepository.findByIdWithVoditelj(id);
     }
 
+    /**
+     * Ažurira status slučaja.
+     *
+     * <p>Dozvoljeni statusi su: {@code "Otvoren"}, {@code "Zatvoren"} i {@code "Arhiviran"}.
+     * Svaki drugi status uzrokuje {@link IllegalArgumentException}.
+     *
+     * @param id     identifikator slučaja
+     * @param status novi status slučaja
+     * @return {@code true} ako je ažuriranje uspješno izvršeno
+     * @throws IllegalArgumentException ako je proslijeđeni status nevalidan
+     */
     public boolean updateSlucajStatus(Long id, String status) {
         Set<String> allowedStatuses = Set.of("Otvoren", "Zatvoren", "Arhiviran");
         if (status == null || !allowedStatuses.contains(status)) {
@@ -192,6 +273,14 @@ public class SlucajService {
         return slucajRepository.updateStatus(id, status);
     }
 
+    /**
+     * Dohvata djelimični izvještaj o slučaju (bez forenzičkih izvještaja i osumnjičenih).
+     *
+     * <p>Sadrži: osnovne podatke o slučaju, dokaze, lanac nadzora, tim i svjedoke.
+     *
+     * @param slucajId identifikator slučaja
+     * @return {@link Optional} s {@link IzvjestajDTO} ako slučaj postoji
+     */
     public Optional<IzvjestajDTO> getIzvjestaj(Long slucajId) {
         Optional<IzvjestajDTO.SlucajInfo> slucajInfo = izvjestajRepository.findSlucajInfo(slucajId);
         if (slucajInfo.isEmpty()) {

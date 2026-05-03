@@ -10,14 +10,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repozitorij za upravljanje osumnjičenima iz tabele {@code OSUMNJICENI} i vezne tabele {@code SLUCAJ_OSUMNJICENI}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class OsumnjiceniRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public OsumnjiceniRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Sprema novog osumnjičenog koristeći proslijeđenu konekciju (za transakcijsku upotrebu).
+     * Vraća generisani {@code OSUMNJICENI_ID}.
+     *
+     * @param conn        aktivna JDBC konekcija
+     * @param osumnjiceni osumnjičeni koji se sprema
+     * @return generisani primarni ključ novog osumnjičenog
+     * @throws SQLException ako dođe do greške pri izvršavanju SQL upita
+     */
     public Long saveWithConnection(Connection conn, Osumnjiceni osumnjiceni) throws SQLException {
         String sql = "INSERT INTO OSUMNJICENI (IME_PREZIME, JMBG, ADRESA_ID, DATUM_RODJENJA) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"OSUMNJICENI_ID"})) {
@@ -35,6 +50,14 @@ public class OsumnjiceniRepository {
         }
     }
 
+    /**
+     * Dodaje vezu između slučaja i osumnjičenog u tabelu {@code SLUCAJ_OSUMNJICENI} koristeći proslijeđenu konekciju.
+     *
+     * @param conn          aktivna JDBC konekcija
+     * @param slucajId      identifikator slučaja
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @throws SQLException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void linkToSlucaj(Connection conn, Long slucajId, Long osumnjiceniId) throws SQLException {
         String sql = "INSERT INTO SLUCAJ_OSUMNJICENI (SLUCAJ_ID, OSUMNJICENI_ID) VALUES (?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -44,6 +67,12 @@ public class OsumnjiceniRepository {
         }
     }
 
+    /**
+     * Sprema novog osumnjičenog u tabelu {@code OSUMNJICENI}.
+     *
+     * @param osumnjiceni osumnjičeni koji se sprema
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public void save(Osumnjiceni osumnjiceni) {
         String sql = "INSERT INTO OSUMNJICENI (IME_PREZIME, JMBG, ADRESA_ID, DATUM_RODJENJA) VALUES (?, ?, ?, ?)";
         try (Connection conn = dbManager.getConnection();
@@ -58,6 +87,12 @@ public class OsumnjiceniRepository {
         }
     }
 
+    /**
+     * Dohvata sve osumnjičene iz tabele {@code OSUMNJICENI}.
+     *
+     * @return lista svih osumnjičenih
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // READ ALL
     public List<Osumnjiceni> findAll() {
         List<Osumnjiceni> lista = new ArrayList<>();
@@ -74,6 +109,13 @@ public class OsumnjiceniRepository {
         return lista;
     }
 
+    /**
+     * Dohvata osumnjičenog po primarnom ključu.
+     *
+     * @param id identifikator osumnjičenog ({@code OSUMNJICENI_ID})
+     * @return {@link Optional} sa pronađenim osumnjičenim, ili prazan ako ne postoji
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // READ BY ID
     public Optional<Osumnjiceni> findById(Long id) {
         String sql = "SELECT * FROM OSUMNJICENI WHERE OSUMNJICENI_ID = ?";
@@ -91,6 +133,12 @@ public class OsumnjiceniRepository {
         return Optional.empty();
     }
 
+    /**
+     * Ažurira podatke osumnjičenog u tabeli {@code OSUMNJICENI}.
+     *
+     * @param osumnjiceni osumnjičeni sa ažuriranim podacima (mora imati postavljen {@code osumnjiceniId})
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // UPDATE
     public void update(Osumnjiceni osumnjiceni) {
         String sql = "UPDATE OSUMNJICENI SET IME_PREZIME = ?, JMBG = ?, ADRESA_ID = ? WHERE OSUMNJICENI_ID = ?";
@@ -106,6 +154,12 @@ public class OsumnjiceniRepository {
         }
     }
 
+    /**
+     * Briše osumnjičenog iz tabele {@code OSUMNJICENI} po ID-u.
+     *
+     * @param id identifikator osumnjičenog koji se briše
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     // DELETE
     public void delete(Long id) {
         String sql = "DELETE FROM OSUMNJICENI WHERE OSUMNJICENI_ID = ?";
@@ -128,6 +182,13 @@ public class OsumnjiceniRepository {
         );
     }
 
+    /**
+     * Dohvata sve osumnjičene vezane za dati slučaj, sa JOIN-om na adrese.
+     *
+     * @param slucajId identifikator slučaja
+     * @return lista DTO-ova sa podacima o osumnjičenima za dati slučaj
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     public List<OsumnjiceniDTO> findBySlucajId(Long slucajId) {
     List<OsumnjiceniDTO> lista = new ArrayList<>();
     String sql = "SELECT o.OSUMNJICENI_ID, o.IME_PREZIME, o.JMBG, o.DATUM_RODJENJA, " +

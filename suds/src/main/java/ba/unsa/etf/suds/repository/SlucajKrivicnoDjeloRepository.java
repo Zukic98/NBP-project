@@ -8,14 +8,27 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Repozitorij za upravljanje vezama između slučajeva i krivičnih djela iz tabele {@code SLUCAJ_KRIVICNO_DJELO}.
+ * Koristi čisti JDBC pristup — konekcije se dohvataju putem {@link ba.unsa.etf.suds.config.DatabaseManager#getConnection()}
+ * i zatvaraju automatski putem try-with-resources. SQL greške se omotavaju u {@link RuntimeException}.
+ */
 @Repository
 public class SlucajKrivicnoDjeloRepository {
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija {@link DatabaseManager}-a. */
     public SlucajKrivicnoDjeloRepository(DatabaseManager dbManager) {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Dohvata sva krivična djela povezana sa datim slučajem, sa JOIN-om na tabelu {@code KRIVICNA_DJELA}.
+     *
+     * @param slucajId identifikator slučaja
+     * @return lista veza slučaj–krivično djelo sa detaljima krivičnog djela
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     /**
      * Dohvata sva krivična djela povezana sa slučajem (sa JOIN-om)
      */
@@ -53,6 +66,15 @@ public class SlucajKrivicnoDjeloRepository {
         return veze;
     }
 
+    /**
+     * Dodaje vezu između slučaja i krivičnog djela u tabelu {@code SLUCAJ_KRIVICNO_DJELO}.
+     * Izvršava se unutar eksplicitne transakcije.
+     *
+     * @param slucajId identifikator slučaja
+     * @param djeloId  identifikator krivičnog djela
+     * @return kreirana veza sa generisanim {@code vezaId}-om
+     * @throws RuntimeException ako dodavanje nije uspjelo ili nije dobijen generisani ključ
+     */
     /**
      * Dodaje vezu između slučaja i krivičnog djela
      */
@@ -99,6 +121,13 @@ public class SlucajKrivicnoDjeloRepository {
     }
 
     /**
+     * Dodaje više krivičnih djela na slučaj odjednom koristeći batch insert unutar transakcije.
+     *
+     * @param slucajId identifikator slučaja
+     * @param djeloIds lista identifikatora krivičnih djela koja se dodaju
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
+    /**
      * Dodaje više krivičnih djela na slučaj odjednom (bulk insert)
      */
     public void dodajViseVeza(Long slucajId, List<Long> djeloIds) {
@@ -128,6 +157,12 @@ public class SlucajKrivicnoDjeloRepository {
     }
 
     /**
+     * Briše vezu između slučaja i krivičnog djela po ID-u veze.
+     *
+     * @param vezaId identifikator veze koja se briše
+     * @throws RuntimeException ako veza nije pronađena ili dođe do SQL greške
+     */
+    /**
      * Briše vezu između slučaja i krivičnog djela
      */
     public void ukloniVezu(Long vezaId) {
@@ -149,6 +184,12 @@ public class SlucajKrivicnoDjeloRepository {
     }
 
     /**
+     * Briše sve veze krivičnih djela za dati slučaj iz tabele {@code SLUCAJ_KRIVICNO_DJELO}.
+     *
+     * @param slucajId identifikator slučaja čije se veze brišu
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
+    /**
      * Briše sve veze za dati slučaj
      */
     public void ukloniSveVezeZaSlucaj(Long slucajId) {
@@ -164,6 +205,14 @@ public class SlucajKrivicnoDjeloRepository {
         }
     }
 
+    /**
+     * Provjerava da li veza između datog slučaja i krivičnog djela već postoji.
+     *
+     * @param slucajId identifikator slučaja
+     * @param djeloId  identifikator krivičnog djela
+     * @return {@code true} ako veza postoji, {@code false} inače
+     * @throws RuntimeException ako dođe do greške pri izvršavanju SQL upita
+     */
     /**
      * Provjerava da li veza već postoji
      */

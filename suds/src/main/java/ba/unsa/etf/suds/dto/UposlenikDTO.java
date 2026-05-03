@@ -5,18 +5,42 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Odgovor za GET /api/uposlenici i GET /api/uposlenici/{id}.
+ *
+ * <p>Podaci o uposleniku s prilagođenim JSON imenima polja putem
+ * {@code @JsonProperty} anotacija. Metoda {@link #getUloga()} mapira
+ * interne nazive uloga (npr. "SEF_STANICE") u čitljive nazive za SPA.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UposlenikDTO {
+    /** Primarni ključ korisnika iz tabele NBP_USER. */
     private Long userId;
+
+    /** Ime uposlenika. */
     private String ime;
+
+    /** Prezime uposlenika. */
     private String prezime;
+
+    /** Email adresa uposlenika. */
     private String email;
+
+    /** Korisničko ime uposlenika. */
     private String username;
-    private String nazivUloge;     // Iz NBP_ROLE (DB vrijednost, npr. "SEF_STANICE")
-    private String brojZnacke;     // Iz UPOSLENIK_PROFIL
-    private String nazivStanice;   // Iz STANICE
+
+    /** Naziv uloge iz tabele NBP_ROLE (interna vrijednost, npr. "SEF_STANICE"). */
+    private String nazivUloge;
+
+    /** Broj značke uposlenika iz tabele UPOSLENIK_PROFIL. */
+    private String brojZnacke;
+
+    /** Naziv policijske stanice kojoj uposlenik pripada. */
+    private String nazivStanice;
+
+    /** Radni status uposlenika (npr. "Aktivan", "Penzionisan"). */
     private String status;
 
     @JsonProperty("uposlenik_id")

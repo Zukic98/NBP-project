@@ -13,12 +13,22 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * Servis za upravljanje svjedocima u krivičnim slučajevima.
+ *
+ * <p>Orkestrira {@link SvjedokRepository} i {@link AdresaRepository} kako bi
+ * atomično kreirao adresu i svjedoka unutar iste JDBC transakcije, te ih
+ * direktno vezao za odgovarajući slučaj putem {@code svjedok.setSlucajId}.
+ * Sve operacije koje mijenjaju više tabela izvršavaju se ručno upravljanom
+ * transakcijom (setAutoCommit/commit/rollback).
+ */
 @Service
 public class SvjedokService {
     private final SvjedokRepository svjedokRepository;
     private final AdresaRepository adresaRepository;
     private final DatabaseManager dbManager;
 
+    /** Konstruktorska injekcija repozitorija svjedoka, adresa i menadžera konekcija. */
     public SvjedokService(SvjedokRepository svjedokRepository,
                           AdresaRepository adresaRepository,
                           DatabaseManager dbManager) {
@@ -27,14 +37,37 @@ public class SvjedokService {
         this.dbManager = dbManager;
     }
 
+    /**
+     * Dohvata listu svih svjedoka u sistemu.
+     *
+     * @return lista svih {@link Svjedok} zapisa iz baze
+     */
     public List<Svjedok> getAllSvjedoci() {
         return svjedokRepository.findAll();
     }
 
+    /**
+     * Dohvata listu svjedoka vezanih za određeni slučaj.
+     *
+     * @param slucajId identifikator slučaja
+     * @return lista {@link SvjedokDTO} objekata za dati slučaj
+     */
     public List<SvjedokDTO> getSvjedociBySlucajId(Long slucajId) {
         return svjedokRepository.findBySlucajId(slucajId);
     }
 
+    /**
+     * Atomično kreira adresu i svjedoka te ih vezuje za dati slučaj.
+     *
+     * <p>Operacija se izvršava unutar ručno upravljane JDBC transakcije.
+     * Polje {@code ulicaIBroj} ima prednost nad poljem {@code adresa} u zahtjevu.
+     * U slučaju greške transakcija se poništava (rollback).
+     *
+     * @param slucajId identifikator slučaja na koji se svjedok vezuje
+     * @param request  podaci o svjedoku i njegovoj adresi
+     * @return kreirani {@link Svjedok} objekat
+     * @throws RuntimeException ako dođe do greške u JDBC transakciji
+     */
     public Svjedok dodajSvjedoka(Long slucajId, DodajSvjedokaRequest request) {
         Connection conn = null;
         try {

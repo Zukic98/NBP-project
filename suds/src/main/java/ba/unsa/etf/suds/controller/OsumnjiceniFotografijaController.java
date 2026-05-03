@@ -12,6 +12,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST kontroler za upravljanje fotografijama osumnjičenih.
+ *
+ * <p>Bazna putanja: {@code /api/osumnjiceni}. Podržava dohvat, upload, ažuriranje
+ * i brisanje fotografija osumnjičenih. Upload i ažuriranje su multipart/form-data zahtjevi.
+ * Maksimalan broj fotografija po osumnjičenom je 3. Identitet korisnika se izvlači
+ * iz JWT tokena putem {@code JwtUtil.extractUserId}.
+ */
 @RestController
 @RequestMapping("/api/osumnjiceni")
 public class OsumnjiceniFotografijaController {
@@ -19,6 +27,7 @@ public class OsumnjiceniFotografijaController {
     private final OsumnjiceniFotografijaService osumnjiceniFotografijaService;
     private final JwtUtil jwtUtil;
 
+    /** Konstruktorska injekcija servisa za fotografije osumnjičenih i JWT pomoćnih metoda. */
     public OsumnjiceniFotografijaController(OsumnjiceniFotografijaService osumnjiceniFotografijaService,
                                             JwtUtil jwtUtil) {
         this.osumnjiceniFotografijaService = osumnjiceniFotografijaService;
@@ -26,8 +35,11 @@ public class OsumnjiceniFotografijaController {
     }
 
     /**
-     * GET /api/osumnjiceni/{osumnjiceniId}/fotografije
-     * Dobavljanje svih fotografija za osumnjičenog
+     * GET /api/osumnjiceni/{osumnjiceniId}/fotografije - dohvata sve fotografije za osumnjičenog.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @return 200 + lista {@link OsumnjiceniFotografijaDTO},
+     *         500 pri grešci na serveru
      */
     @GetMapping("/{osumnjiceniId}/fotografije")
     public ResponseEntity<List<OsumnjiceniFotografijaDTO>> getFotografije(@PathVariable Long osumnjiceniId) {
@@ -40,9 +52,20 @@ public class OsumnjiceniFotografijaController {
     }
 
     /**
-     * POST /api/osumnjiceni/{osumnjiceniId}/fotografije
-     * Upload fotografije za osumnjičenog
-     * Max 3 fotografije
+     * POST /api/osumnjiceni/{osumnjiceniId}/fotografije - upload fotografije za osumnjičenog.
+     *
+     * <p>Multipart/form-data zahtjev. Dozvoljeni formati: JPEG, PNG, GIF, WebP.
+     * Maksimalna veličina fajla: 5 MB. Maksimalan broj fotografija po osumnjičenom: 3.
+     * Identitet korisnika se izvlači iz JWT tokena putem {@code JwtUtil.extractUserId}.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @param file          fotografija kao multipart fajl
+     * @param redniBroj     opcionalni redni broj fotografije
+     * @param opis          opcionalni opis fotografije
+     * @param token         Authorization header u obliku {@code "Bearer <jwt>"}
+     * @return 201 + poruka o uspješnom uploadu,
+     *         400 ako je format, veličina ili broj fotografija neispravni,
+     *         500 pri grešci na serveru
      */
     @PostMapping("/{osumnjiceniId}/fotografije")
     public ResponseEntity<?> uploadFotografiju(@PathVariable Long osumnjiceniId,
@@ -93,8 +116,19 @@ public class OsumnjiceniFotografijaController {
     }
 
     /**
-     * PUT /api/osumnjiceni/{osumnjiceniId}/fotografije/{fotografijaId}
-     * Ažuriranje fotografije osumnjičenog
+     * PUT /api/osumnjiceni/{osumnjiceniId}/fotografije/{fotografijaId} - ažurira fotografiju osumnjičenog.
+     *
+     * <p>Multipart/form-data zahtjev. Identitet korisnika se izvlači iz JWT tokena
+     * putem {@code JwtUtil.extractUserId}.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @param fotografijaId identifikator fotografije koja se ažurira
+     * @param file          nova fotografija kao multipart fajl
+     * @param opis          opcionalni novi opis fotografije
+     * @param token         Authorization header u obliku {@code "Bearer <jwt>"}
+     * @return 200 + poruka o uspješnom ažuriranju,
+     *         400 pri neispravnom zahtjevu,
+     *         500 pri grešci na serveru
      */
     @PutMapping("/{osumnjiceniId}/fotografije/{fotografijaId}")
     public ResponseEntity<?> azurirajFotografiju(@PathVariable Long osumnjiceniId,
@@ -123,8 +157,14 @@ public class OsumnjiceniFotografijaController {
     }
 
     /**
-     * DELETE /api/osumnjiceni/{osumnjiceniId}/fotografije/{fotografijaId}
-     * Brisanje fotografije osumnjičenog
+     * DELETE /api/osumnjiceni/{osumnjiceniId}/fotografije/{fotografijaId} - briše fotografiju osumnjičenog.
+     *
+     * @param osumnjiceniId identifikator osumnjičenog
+     * @param fotografijaId identifikator fotografije koja se briše
+     * @param token         Authorization header u obliku {@code "Bearer <jwt>"}
+     * @return 200 + poruka o uspješnom brisanju,
+     *         400 pri neispravnom zahtjevu,
+     *         500 pri grešci na serveru
      */
     @DeleteMapping("/{osumnjiceniId}/fotografije/{fotografijaId}")
     public ResponseEntity<?> obrisiFotografiju(@PathVariable Long osumnjiceniId,
