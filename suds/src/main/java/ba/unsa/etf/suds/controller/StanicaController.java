@@ -3,6 +3,7 @@ package ba.unsa.etf.suds.controller;
 import ba.unsa.etf.suds.dto.RegistrationRequest; 
 import ba.unsa.etf.suds.model.Stanica;
 import ba.unsa.etf.suds.service.StanicaService;
+import ba.unsa.etf.suds.validation.EmailValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -77,6 +78,11 @@ public class StanicaController {
     })
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
         try {
+            String emailError = EmailValidator.validate(request.getEmail());
+        if (emailError != null) {
+            return ResponseEntity.badRequest().body(emailError);
+        }
+
             service.registerStanica(request);
             return ResponseEntity.status(201).body("Stanica i šef su uspješno registrovani u bazu!");
         } catch (RuntimeException e) {

@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ba.unsa.etf.suds.validation.EmailValidator;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class UposlenikController {
     /**
      * Kreira instancu kontrolera s injektovanim servisom i JWT pomoćnom klasom.
      *
-     * @param uposlenikService servis za upravljanje uposlenicima
+     * @param uposlenikService servis za upravljanje 
      * @param jwtUtil          pomoćna klasa za ekstrakciju podataka iz JWT tokena
      */
     public UposlenikController(UposlenikService uposlenikService, JwtUtil jwtUtil) {
@@ -114,6 +115,14 @@ public class UposlenikController {
             @RequestBody UposlenikDTO request,
             HttpServletRequest httpRequest) {
         try {
+            // Validacija email-a ako je poslan
+            if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+                String emailError = EmailValidator.validate(request.getEmail());
+                if (emailError != null) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(emailError);
+                }
+            }
+
             String token = extractToken(httpRequest);
             Long stanicaId = jwtUtil.extractStanicaId(token);
 
@@ -176,6 +185,11 @@ public ResponseEntity<?> resetLozinke(@PathVariable Long id, @RequestBody java.u
             HttpServletRequest httpRequest) {
         
         try {
+            String emailError = EmailValidator.validate(request.getEmail());
+            if (emailError != null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(emailError);
+            }
+
             String token = extractToken(httpRequest);
             Long stanicaId = jwtUtil.extractStanicaId(token);
             
