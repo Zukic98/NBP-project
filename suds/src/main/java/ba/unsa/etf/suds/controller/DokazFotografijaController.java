@@ -48,12 +48,6 @@ public class DokazFotografijaController {
     public ResponseEntity<List<DokazFotografijaDTO>> getFotografije(@PathVariable Long dokazId) {
         try {
             List<DokazFotografijaDTO> fotografije = dokazFotografijaService.getFotografijeByDokazId(dokazId);
-            // Debug ispis
-            System.out.println("Broj fotografija za dokaz " + dokazId + ": " + fotografije.size());
-            for (DokazFotografijaDTO foto : fotografije) {
-                System.out.println("Foto ID: " + foto.getFotografijaId() +
-                        ", Base64 length: " + (foto.getFotografijaBase64() != null ? foto.getFotografijaBase64().length() : "null"));
-            }
             return ResponseEntity.ok(fotografije);
         } catch (Exception e) {
             e.printStackTrace();

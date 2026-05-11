@@ -156,7 +156,6 @@ public class StanicaRepository {
         }
 
         conn.commit(); 
-        System.out.println("Uspješno registrovano sve: Adresa ID " + generisanAdresaId + ", Stanica ID " + stanicaId);
 
     } catch (SQLException e) {
         if (conn != null) {

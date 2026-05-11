@@ -86,7 +86,6 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 String userId = jwtUtil.extractUserId(token);
                 String role = jwtUtil.extractRole(token);
-                System.out.println("Logovan User: " + userId + " sa ulogom: ROLE_" + role);
                 if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userId, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));

@@ -83,9 +83,7 @@ void login_KorisnikPenzionisan_ThrowsException() {
     when(passwordEncoder.matches(eq("pass"), anyString())).thenReturn(true);
 
     RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(request));
-    
-    System.out.println("Poruka greške: " + ex.getMessage());
-    
+
     assertTrue(ex.getMessage().contains("Pristup odbijen"), 
         "Očekivana poruka treba sadržavati 'Pristup odbijen', ali je bila: " + ex.getMessage());
 }

@@ -183,7 +183,6 @@ public class UposlenikRepository {
                 }
             }
         } catch (SQLException e) {
-    System.out.println("SQL DETALJI: " + e.getMessage()); 
     e.printStackTrace();
     throw new RuntimeException("Greška pri dohvatanju uposlenika po ID-u: " + e.getMessage(), e);
 }
