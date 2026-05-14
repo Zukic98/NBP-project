@@ -25,6 +25,7 @@ suds/
 │   └── SudsApplication.java
 ├── src/main/resources/
 │   ├── application.yml  # DB creds + JWT secret (CHECKED-IN — replace before push)
+│   ├── db/pogledi.sql   # Oracle views (POGLED_*) — apply manually, WITH READ ONLY
 │   └── fonts/           # iText 7 PDF generation fonts
 └── src/test/java/.../
     ├── service/         # 10 Mockito unit tests
@@ -34,18 +35,19 @@ suds/
 
 ## WHERE TO LOOK
 
-| Task                             | Location                                                      | Notes                                                             |
-| -------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Add new entity                   | `model/` → `repository/` → `service/` → `controller/`         | Follow `Slucaj*` chain as reference                               |
-| Add complex JOIN query           | `repository/`                                                 | See `SlucajRepository.findDetaljiByBroj` for JOIN→DTO map         |
-| Add DTO for joined data          | `dto/` + `repository/` mapper                                 | Plain Lombok `@Data`; SQL does the join                           |
-| DB connection                    | `config/DatabaseManager.java`                                 | New connection per call; **caller closes via try-with-resources** |
-| JWT auth wiring                  | `security/JwtFilter.java`, `security/JwtUtil.java`            | Reads `Authorization: Bearer …`; checks `CRNA_LISTA_TOKENA`       |
-| Add public (no-auth) endpoint    | `config/SecurityConfig.java`                                  | Whitelist path; `/auth/login` and `/stanice/register` are public  |
-| Login / logout / password change | `controller/AuthController.java` + `service/AuthService.java` | Logout writes token to blacklist                                  |
-| Configure DB / JWT secret        | `src/main/resources/application.yml`                          | `db.*`, `jwt.secret`, `jwt.expiration-ms`                         |
-| PDF report (case)                | `service/PdfGeneratorService.java`                            | iText 7; fonts under `resources/fonts/`                           |
-| Add tests                        | `src/test/java/.../{service,repository,controller}/`          | JUnit 5 + Mockito; mock repository in service tests               |
+| Task                             | Location                                                      | Notes                                                                |
+| -------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Add new entity                   | `model/` → `repository/` → `service/` → `controller/`         | Follow `Slucaj*` chain as reference                                  |
+| Add complex JOIN query           | `repository/`                                                 | See `SlucajRepository.findDetaljiByBroj` for JOIN→DTO map            |
+| Add DTO for joined data          | `dto/` + `repository/` mapper                                 | Plain Lombok `@Data`; SQL does the join                              |
+| DB connection                    | `config/DatabaseManager.java`                                 | New connection per call; **caller closes via try-with-resources**    |
+| JWT auth wiring                  | `security/JwtFilter.java`, `security/JwtUtil.java`            | Reads `Authorization: Bearer …`; checks `CRNA_LISTA_TOKENA`          |
+| Add public (no-auth) endpoint    | `config/SecurityConfig.java`                                  | Whitelist path; `/auth/login` and `/stanice/register` are public     |
+| Login / logout / password change | `controller/AuthController.java` + `service/AuthService.java` | Logout writes token to blacklist                                     |
+| Configure DB / JWT secret        | `src/main/resources/application.yml`                          | `db.*`, `jwt.secret`, `jwt.expiration-ms`                            |
+| PDF report (case)                | `service/PdfGeneratorService.java`                            | iText 7; fonts under `resources/fonts/`                              |
+| Add tests                        | `src/test/java/.../{service,repository,controller}/`          | JUnit 5 + Mockito; mock repository in service tests                  |
+| Add/modify Oracle view           | `src/main/resources/db/pogledi.sql`                           | `WITH READ ONLY`; apply via SQL\*Plus `@pogledi.sql` as schema-owner |
 
 ## CONVENTIONS
 
