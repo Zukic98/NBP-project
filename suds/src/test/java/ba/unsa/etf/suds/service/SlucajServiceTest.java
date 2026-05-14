@@ -6,6 +6,7 @@ import ba.unsa.etf.suds.dto.KreirajSlucajRequest;
 import ba.unsa.etf.suds.dto.SlucajListDTO;
 import ba.unsa.etf.suds.model.Slucaj;
 import ba.unsa.etf.suds.repository.AdresaRepository;
+import ba.unsa.etf.suds.repository.DokazRepository;
 import ba.unsa.etf.suds.repository.IzvjestajRepository;
 import ba.unsa.etf.suds.repository.SlucajRepository;
 import ba.unsa.etf.suds.repository.TimNaSlucajuRepository;
@@ -36,6 +37,10 @@ class SlucajServiceTest {
     @Mock
     private IzvjestajRepository izvjestajRepository;
     @Mock
+    private PdfGeneratorService pdfGeneratorService;
+    @Mock
+    private DokazRepository dokazRepository;
+    @Mock
     private DatabaseManager dbManager;
     @Mock
     private Connection mockConnection;
@@ -45,7 +50,8 @@ class SlucajServiceTest {
     @BeforeEach
     void setUp() throws SQLException {
         MockitoAnnotations.openMocks(this);
-        slucajService = new SlucajService(slucajRepository, adresaRepository, timRepository, izvjestajRepository, dbManager);
+        slucajService = new SlucajService(slucajRepository, adresaRepository, timRepository,
+                izvjestajRepository, pdfGeneratorService, dokazRepository, dbManager);
         when(dbManager.getConnection()).thenReturn(mockConnection);
     }
 
@@ -205,8 +211,8 @@ class SlucajServiceTest {
         IzvjestajDTO.DokazInfo dokazInfo = mock(IzvjestajDTO.DokazInfo.class);
         List<IzvjestajDTO.DokazInfo> dokazi = List.of(dokazInfo);
 
-        IzvjestajDTO.LanacInfo lanacInfo = mock(IzvjestajDTO.LanacInfo.class);
-        List<IzvjestajDTO.LanacInfo> lanac = List.of(lanacInfo);
+        IzvjestajDTO.LanacNadzoraInfo lanacInfo = mock(IzvjestajDTO.LanacNadzoraInfo.class);
+        List<IzvjestajDTO.LanacNadzoraInfo> lanac = List.of(lanacInfo);
 
         IzvjestajDTO.TimInfo timInfo = mock(IzvjestajDTO.TimInfo.class);
         List<IzvjestajDTO.TimInfo> tim = List.of(timInfo);
