@@ -71,22 +71,25 @@ class UposlenikControllerTest {
         assertEquals("Nemate pravo!", response.getBody());
     }
 
-    @Test
-    @DisplayName("Treba vratiti 400 Bad Request ako email već postoji kod ažuriranja")
-    void azurirajPodatke_EmailExists_Returns400() {
-        String mockToken = "valid-token";
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + mockToken);
-        when(jwtUtil.extractStanicaId(mockToken)).thenReturn(1L);
+ @Test
+@DisplayName("Treba vratiti 400 Bad Request ako email već postoji kod ažuriranja")
+void azurirajPodatke_EmailExists_Returns400() {
+    String mockToken = "valid-token";
+    when(request.getHeader("Authorization")).thenReturn("Bearer " + mockToken);
+    when(jwtUtil.extractStanicaId(mockToken)).thenReturn(1L);
 
-        UposlenikDTO dto = new UposlenikDTO();
-        dto.setEmail("vec@postoji.com");
+    UposlenikDTO dto = new UposlenikDTO();
+    dto.setEmail("nekipostojecomail@gmail.com"); 
 
-        doThrow(new RuntimeException("Email je već zauzet!"))
-            .when(uposlenikService).azurirajPodatke(anyLong(), any(), anyLong());
+    doThrow(new RuntimeException("Email je već zauzet!"))
+        .when(uposlenikService).azurirajPodatke(anyLong(), any(), anyLong());
 
-        ResponseEntity<?> response = uposlenikController.azurirajPodatke(10L, dto, request);
+    ResponseEntity<?> response = uposlenikController.azurirajPodatke(10L, dto, request);
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody().toString().contains("Email je već zauzet!"));
-    }
+    assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    assertNotNull(response.getBody());
+    
+    String bodyText = response.getBody().toString();
+    assertTrue(bodyText.contains("Email je već zauzet!"), "Očekivani tekst nije pronađen u: " + bodyText);
+}
 }

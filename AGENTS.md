@@ -25,15 +25,16 @@ deps. Always `cd` into the right subdirectory before running commands.
 
 ## WHERE TO LOOK
 
-| Task                      | Location                                  | Notes                                                                            |
-| ------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------- |
-| Add backend endpoint      | `suds/`                                   | See `suds/AGENTS.md` 4-layer flow                                                |
-| Add UI component          | `frontend/src/components/`                | Flat dir, JSX, Tailwind-styled                                                   |
-| Wire FE → BE call         | `frontend/src/api.js`                     | Single axios instance, JWT interceptor                                           |
-| Change DB schema          | None — schema lives on remote Oracle      | Hand-written DDL, no migrations in repo                                          |
-| Configure DB / JWT secret | `suds/src/main/resources/application.yml` | Plaintext creds — **do not commit real ones**                                    |
-| Configure FE API URL      | `frontend/.env` (from `.env.example`)     | Var is `VITE_API_BASE_URL`, code reads `VITE_API_URL` — **mismatch** (see NOTES) |
-| Cross-cutting docs        | GitHub Wiki                               | Linked from `README.md`                                                          |
+| Task                      | Location                                  | Notes                                                                             |
+| ------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| Add backend endpoint      | `suds/`                                   | See `suds/AGENTS.md` 4-layer flow                                                 |
+| Add UI component          | `frontend/src/components/`                | Flat dir, JSX, Tailwind-styled                                                    |
+| Wire FE → BE call         | `frontend/src/api.js`                     | Single axios instance, JWT interceptor                                            |
+| Change DB schema          | None — schema lives on remote Oracle      | Hand-written DDL, no migrations in repo                                           |
+| Add/change Oracle view    | `suds/src/main/resources/db/pogledi.sql`  | Apply manually (`@pogledi.sql` in SQL\*Plus) — `WITH READ ONLY`, see backend repo |
+| Configure DB / JWT secret | `suds/src/main/resources/application.yml` | Plaintext creds — **do not commit real ones**                                     |
+| Configure FE API URL      | `frontend/.env` (from `.env.example`)     | Var is `VITE_API_BASE_URL`, code reads `VITE_API_URL` — **mismatch** (see NOTES)  |
+| Cross-cutting docs        | GitHub Wiki                               | Linked from `README.md`                                                           |
 
 ## CONVENTIONS (PROJECT-WIDE)
 
