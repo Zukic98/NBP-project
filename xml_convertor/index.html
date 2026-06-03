@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="bs">
+    <head>
+    <meta charset="UTF-8">
+    <title>Oracle XML Konverzijski Alat</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f4f9; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+    textarea { width: 100%; height: 200px; font-family: monospace; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; }
+    button { background-color: #0066cc; color: white; border: none; padding: 10px 15px; font-size: 16px; cursor: pointer; border-radius: 4px; margin-top: 10px; }
+    button:hover { background-color: #0052a3; }
+    .section { margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+    .status { font-weight: bold; margin-top: 10px; color: green; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Oracle XML Konverzija (Tabela: ADRESE)</h2>
+
+    <div class="section">
+        <h3>1. Preuzimanje podataka iz baze (Baza &rarr; XML)</h3>
+        <button onclick="exportFromDB()">Povuci XML iz baze</button>
+        <textarea id="xmlPrikaz" placeholder="Ovdje će se prikazati XML iz baze..."></textarea>
+    </div>
+
+    <div class="section">
+        <h3>2. Slanje podataka u bazu (XML &rarr; Baza)</h3>
+        <p><small>Možete izmijeniti XML iznad ili zalijepiti novi (obrišite ADRESA_ID tagove pri unosu novih jer su identity kolona).</small></p>
+        <button onclick="importToDB()">Spasi ovaj XML u bazu</button>
+        <div id="statusPoruka" class="status"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3000/api';
+
+    // Funkcija koja poziva GET endpoint i prikazuje XML
+    async function exportFromDB() {
+    try {
+    const response = await fetch(`${API_URL}/export`);
+    const xmlText = await response.text();
+    document.getElementById('xmlPrikaz').value = xmlText;
+} catch (error) {
+    alert('Greška pri povezivanju sa serverom: ' + error.message);
+}
+}
+
+    // Funkcija koja uzima XML iz textarea i šalje ga na POST endpoint
+    async function importToDB() {
+    const xmlContent = document.getElementById('xmlPrikaz').value;
+    const statusDiv = document.getElementById('statusPoruka');
+
+    if (!xmlContent.trim()) {
+    alert('Nema XML sadržaja za slanje!');
+    return;
+}
+
+    try {
+    const response = await fetch(`${API_URL}/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/xml' },
+    body: xmlContent
+});
+    const data = await response.json();
+
+    statusDiv.textContent = data.message;
+    if(data.status === "Greška") {
+    statusDiv.style.color = "red";
+} else {
+    statusDiv.style.color = "green";
+}
+} catch (error) {
+    statusDiv.textContent = 'Greška: ' + error.message;
+    statusDiv.style.color = "red";
+}
+}
+</script>
+</body>
+</html>
