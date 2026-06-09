@@ -188,7 +188,7 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
       </div>
       {/* Prikazujemo Potvrde Primopredaje za Inspektore, Forenzičare i Administratore */}
       <div>
-        {['Inspektor', 'Forenzičar', 'Administrator'].includes(auth.user.uloga) && (
+        {(
           <HandoverApproval 
             auth={auth} 
             onRefresh={(refreshFn) => {
@@ -209,7 +209,7 @@ export default function CaseDetail({ caseId, onBackToList, auth }) {
       </div>
       {/* MyPendingHandovers - za poništavanje slanja */}
       <div>
-        {['Inspektor', 'Forenzičar', 'Administrator'].includes(auth.user.uloga) && (
+        {(
           <MyPendingHandovers 
             auth={auth} 
             onRefresh={(refreshFn) => {

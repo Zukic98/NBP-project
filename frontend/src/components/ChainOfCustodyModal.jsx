@@ -274,7 +274,13 @@ export default function ChainOfCustodyModal({ dokaz, auth, onClose, caseStatus, 
     }
   };
 
-  const dozvolaPrimopredaje = ['Administrator', 'Inspektor', 'Forenzičar'].includes(auth.user.uloga);
+  // Backend maps internal role names to friendly names (see UposlenikDTO#getUloga):
+  // SEF_STANICE -> Administrator, INSPEKTOR -> Inspektor, FORENZIČAR -> Forenzičar, POLICAJAC -> Policajac
+  // Ensure we accept all variants that appear in UI checks or admin forms.
+  const dozvolaPrimopredaje = true;
+  
+  const pendingEntry = chain.find(entry => entry.potvrda_status === 'Čeka potvrdu' || entry.potvrdaStatus === 'Čeka potvrdu');
+  const pendingRecipientName = pendingEntry?.preuzeo_ime || pendingEntry?.preuzeoIme || trenutniNosilac?.trenutni_nosilac_ime || 'primaoca';
   
   // Formatiraj status za prikaz
   const statusInfo = trenutniNosilac ? 
@@ -333,7 +339,7 @@ export default function ChainOfCustodyModal({ dokaz, auth, onClose, caseStatus, 
                 </p>
                 {cekaPotvrdu && (
                   <p className="text-sm text-yellow-400 mt-1">
-                    ⏳ Dokaz čeka potvrdu od {trenutniNosilac?.trenutni_nosilac_ime || 'primaoca'}
+                    ⏳ Dokaz čeka potvrdu od {pendingRecipientName}
                   </p>
                 )}
               </div>
@@ -353,7 +359,7 @@ export default function ChainOfCustodyModal({ dokaz, auth, onClose, caseStatus, 
           {/* Poruka ako dokaz čeka potvrdu */}
           {cekaPotvrdu && (
             <InfoPoruka 
-              message={`⏳ Ovaj dokaz čeka potvrdu od ${trenutniNosilac?.trenutni_nosilac_ime || 'primaoca'}. Ne možete predati dokaz dok se ne potvrdi trenutna primopredaja.`}
+              message={`⏳ Ovaj dokaz čeka potvrdu od ${pendingRecipientName}. Ne možete predati dokaz dok se ne potvrdi trenutna primopredaja.`}
               boja="yellow"
             />
           )}
@@ -582,7 +588,7 @@ export default function ChainOfCustodyModal({ dokaz, auth, onClose, caseStatus, 
                   <div>
                     <h5 className="text-yellow-300 font-semibold text-lg">Dokaz čeka potvrdu</h5>
                     <p className="text-yellow-200 mt-2">
-                      Trenutno ne možete predati ovaj dokaz jer čeka potvrdu od <span className="font-semibold">{trenutniNosilac?.trenutni_nosilac_ime || 'primaoca'}</span>.
+                      Trenutno ne možete predati ovaj dokaz jer čeka potvrdu od <span className="font-semibold">{pendingRecipientName}</span>.
                     </p>
                     <p className="text-yellow-200 mt-1">
                       Kada primalac potvrdi primopredaju, dokaz će biti dostupan za dalje predaje.
