@@ -274,8 +274,7 @@ export default function ChainOfCustodyModal({ dokaz, auth, onClose, caseStatus, 
     }
   };
 
-  const dozvolaPrimopredaje = ['Administrator', 'Inspektor', 'Forenzičar'].includes(auth.user.uloga);
-  
+  const dozvolaPrimopredaje = ['Administrator', 'Inspektor', 'Forenzičar','POLICIJSKI_SLUZBENIK'].includes(auth.user.uloga);
   // Formatiraj status za prikaz
   const statusInfo = trenutniNosilac ? 
     formatStatusDokaza(dokaz, trenutniNosilac, auth.user.uposlenik_id) : 
