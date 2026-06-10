@@ -102,7 +102,7 @@ public class SlucajService {
 
         izvjestajRepository.saveReport(
                 slucajId,
-                slucajInfo.get().getSlucajId(), // Ovo treba popraviti - dohvati stvarni stanicaId
+                stanicaId, 
                 userId,
                 imeGenerisao,
                 pdfBytes,

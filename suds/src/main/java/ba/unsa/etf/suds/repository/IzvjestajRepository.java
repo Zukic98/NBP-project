@@ -430,6 +430,7 @@ public class IzvjestajRepository {
         return false;
     }
 
+    
     /**
      * Insert novog izvještaja
      */
